@@ -1,0 +1,40 @@
+/* This is global css file */
+
+/* Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:where([class^="ri-"])::before {
+    content: "\f3c2";
+}
+
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+/* Common Hover Effects */
+/* 1. 기본 상태 - 트랜지션 효과 설정 */
+/*Todo hero-section.module.css 내에 card-effect들 각 해당 컴포넌트에서 아래 클래스 네임으로 대체해야함.*/
+.card-hover-effect {
+    @apply transition-all duration-300;
+    /* Tailwind CSS로 "모든 속성에 0.3초 트랜지션" 적용 */
+}
+/* 2. 호버 상태 - 실제 변화 효과 */
+.card-hover-effect:hover {
+    transform: translateY(-5px);        /* 위로 5px 이동 */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);  /* 그림자 */
+}
+
+input:focus {
+    outline: none;
+}
+
+textarea {
+    outline: none;
+}
+
+select:focus {
+    outline: none;
+}

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카포에라 도장 상세 정보</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>tailwind.config={theme:{extend:{colors:{primary:'#3b82f6',secondary:'#10b981'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <style>
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+<header class="bg-white shadow-sm">
+    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+        <a href="#" class="text-2xl font-['Pacifico'] text-primary">logo</a>
+        <nav class="hidden md:flex space-x-6">
+            <a href="#" class="text-gray-600 hover:text-primary">홈</a>
+            <a href="#" class="text-primary font-medium">도장 찾기</a>
+            <a href="#" class="text-gray-600 hover:text-primary">이벤트</a>
+            <a href="#" class="text-gray-600 hover:text-primary">커뮤니티</a>
+        </nav>
+        <div class="flex items-center space-x-4">
+            <button class="text-gray-600 hover:text-primary">
+                <div class="w-6 h-6 flex items-center justify-center">
+                    <i class="ri-user-line"></i>
+                </div>
+            </button>
+            <button class="bg-primary text-white px-4 py-2 !rounded-button">로그인</button>
+        </div>
+    </div>
+</header>
+<main class="container mx-auto px-4 py-8">
+    <div class="mb-6">
+        <a href="#" class="text-primary hover:underline flex items-center">
+            <div class="w-5 h-5 flex items-center justify-center mr-1">
+                <i class="ri-arrow-left-line"></i>
+            </div>
+            도장 목록으로 돌아가기
+        </a>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 왼쪽 컬럼: 도장 정보 -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- 도장 기본 정보 -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <h1 class="text-3xl font-bold text-gray-900">카포에라 마스터 아카데미</h1>
+                    <button class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
+                        <div class="w-6 h-6 flex items-center justify-center text-gray-500">
+                            <i class="ri-heart-line"></i>
+                        </div>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 flex items-center justify-center text-primary mr-3">
+                                <i class="ri-user-star-line"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">관장/사범</p>
+                                <p class="text-gray-900 font-medium">마에스트레 호세 실바</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 flex items-center justify-center text-primary mr-3">
+                                <i class="ri-phone-line"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">연락처</p>
+                                <p class="text-gray-900 font-medium">010-1234-5678</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 flex items-center justify-center text-primary mr-3">
+                                <i class="ri-money-dollar-circle-line"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">수강료 범위</p>
+                                <p class="text-gray-900 font-medium">월 120,000원 ~ 150,000원</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 flex items-center justify-center text-primary mr-3">
+                                <i class="ri-calendar-line"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">등록일</p>
+                                <p class="text-gray-900 font-medium">2025년 5월 15일</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- 상세 설명 -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">도장 소개</h2>
+                <div class="prose max-w-none text-gray-700">
+                    <p>카포에라 마스터 아카데미는 브라질 바이아에서 직접 전수받은 정통 카포에라를 가르치는 전문 도장입니다. 초보자부터 전문가까지 모든 레벨의 수련생들을 위한 다양한 프로그램을 제공하고 있습니다.</p>
+                    <p class="mt-4">우리 도장은 단순한 기술 습득을 넘어 카포에라의 문화, 음악, 역사를 함께 배우는 통합적인 교육을 지향합니다. 매년 브라질 마스터들을 초청하여 워크샵을 진행하며, 정기적인 로다(카포에라 서클)와 공연 활동을 통해 실전 경험을 쌓을 수 있습니다.</p>
+                    <p class="mt-4">어린이, 청소년, 성인 클래스가 분리되어 있으며, 개인의 체력과 기술 수준에 맞춘 맞춤형 트레이닝을 제공합니다. 카포에라를 통해 신체적 건강뿐만 아니라 정신적 성장과 문화적 이해를 함께 발전시켜 보세요.</p>
+                </div>
+            </section>
+            <!-- 사진 및 영상 갤러리 -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-900">사진 및 영상</h2>
+                    <div class="flex space-x-4">
+                        <button class="text-gray-500 hover:text-primary active" data-tab="photos">
+                            <div class="w-6 h-6 flex items-center justify-center">
+                                <i class="ri-image-line"></i>
+                            </div>
+                        </button>
+                        <button class="text-gray-500 hover:text-primary" data-tab="videos">
+                            <div class="w-6 h-6 flex items-center justify-center">
+                                <i class="ri-video-line"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                <!-- 사진 갤러리 -->
+                <div id="photos" class="tab-content active">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="relative aspect-square rounded-lg overflow-hidden cursor-pointer group">
+                            <img src="https://readdy.ai/api/search-image?query=capoeira%20training%20session%20in%20a%20modern%20gym%20with%20natural%20lighting%2C%20students%20practicing%20basic%20movements%20on%20wooden%20floor%2C%20high%20quality%20professional%20photo&width=400&height=400&seq=1&orientation=squarish" class="w-full h-full object-cover" alt="카포에라 수업">
+                            <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div class="w-8 h-8 flex items-center justify-center text-white">
+                                    <i class="ri-zoom-in-line"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative aspect-square rounded-lg overflow-hidden cursor-pointer group">
+                            <img src="https://readdy.ai/api/search-image?query=capoeira%20performance%20with%20traditional%20instruments%2C%20berimbau%20and%20pandeiro%2C%20students%20in%20white%20uniforms%20performing%20in%20a%20circle%2C%20vibrant%20atmosphere&width=400&height=400&seq=2&orientation=squarish" class="w-full h-full object-cover" alt="카포에라 공연">
+                            <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div class="w-8 h-8 flex items-center justify-center text-white">
+                                    <i class="ri-zoom-in-line"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative aspect-square rounded-lg overflow-hidden cursor-pointer group">
+                            <img src="https://readdy.ai/api/search-image?query=capoeira%20master%20teaching%20advanced%20moves%2C%20demonstrating%20acrobatic%20techniques%2C%20students%20watching%20attentively%20in%20a%20modern%20training%20facility&width=400&height=400&seq=3&orientation=squarish" class="w-full h-full object-cover" alt="마스터 클래스">
+                            <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div class="w-8 h-8 flex items-center justify-center text-white">
+                                    <i class="ri-zoom-in-line"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 영상 갤러리 -->
+                <div id="videos" class="tab-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="aspect-video rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer group relative">
+                            <div class="w-16 h-16 flex items-center justify-center text-primary">
+                                <i class="ri-play-circle-line ri-3x"></i>
+                            </div>
+                            <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <span class="absolute bottom-2 left-2 text-white text-sm">카포에라 기초 동작 가이드</span>
+                        </div>
+                        <div class="aspect-video rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer group relative">
+                            <div class="w-16 h-16 flex items-center justify-center text-primary">
+                                <i class="ri-play-circle-line ri-3x"></i>
+                            </div>
+                            <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <span class="absolute bottom-2 left-2 text-white text-sm">2025 카포에라 시연회 하이라이트</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- 댓글 섹션 -->
+            <section class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">리뷰 및 댓글</h2>
+                <!-- 댓글 작성 폼 -->
+                <div class="mb-8">
+                    <form class="space-y-4">
+                        <div>
+<textarea
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+        rows="3"
+        placeholder="도장에 대한 리뷰나 질문을 남겨주세요."
+></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="bg-primary text-white px-5 py-2 !rounded-button whitespace-nowrap">댓글 등록</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- 댓글 목록 -->
+                <div class="space-y-6">
+                    <div class="border-b border-gray-200 pb-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                                    <div class="w-6 h-6 flex items-center justify-center text-gray-500">
+                                        <i class="ri-user-line"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">김지훈</p>
+                                    <p class="text-sm text-gray-500">2025년 6월 25일</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="text-sm text-gray-500 hover:text-primary">수정</button>
+                                <button class="text-sm text-gray-500 hover:text-red-500">삭제</button>
+                            </div>
+                        </div>
+                        <p class="text-gray-700">처음 카포에라를 접했는데, 선생님이 매우 친절하게 기초부터 가르쳐주셔서 즐겁게 배우고 있습니다. 음악과 함께하는 수업이 특히 좋아요. 다른 무술과는 다른 매력이 있어요!</p>
+                    </div>
+                    <div class="border-b border-gray-200 pb-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                                    <div class="w-6 h-6 flex items-center justify-center text-gray-500">
+                                        <i class="ri-user-line"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">박서연</p>
+                                    <p class="text-sm text-gray-500">2025년 6월 20일</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="text-sm text-gray-500 hover:text-primary">수정</button>
+                                <button class="text-sm text-gray-500 hover:text-red-500">삭제</button>
+                            </div>
+                        </div>
+                        <p class="text-gray-700">6개월 정도 다니고 있는데 체력도 많이 좋아지고 유연성도 늘었어요. 무엇보다 카포에라의 역사와 문화를 함께 배울 수 있어서 더욱 의미 있는 시간이 되고 있습니다. 주변 친구들에게도 많이 추천하고 있어요!</p>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                                    <div class="w-6 h-6 flex items-center justify-center text-gray-500">
+                                        <i class="ri-user-line"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">이민준</p>
+                                    <p class="text-sm text-gray-500">2025년 6월 15일</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="text-sm text-gray-500 hover:text-primary">수정</button>
+                                <button class="text-sm text-gray-500 hover:text-red-500">삭제</button>
+                            </div>
+                        </div>
+                        <p class="text-gray-700">아이와 함께 다니고 있는데, 아이의 집중력과 신체 발달에 정말 도움이 많이 됩니다. 선생님들이 아이들을 대하는 방식이 매우 인상적이에요. 수업 시간도 적절하고 시설도 깨끗해서 만족하고 있습니다.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <!-- 오른쪽 컬럼: 위치 정보 및 지도 -->
+        <div class="space-y-8">
+            <section class="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">위치 정보</h2>
+                <!-- 지도 -->
+                <div class="h-64 rounded-lg overflow-hidden mb-4" style="background-image: url('https://public.readdy.ai/gen_page/map_placeholder_1280x720.png'); background-position: center; background-size: cover;"></div>
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 flex items-center justify-center text-primary mr-3">
+                            <i class="ri-map-pin-line"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">주소</p>
+                            <p class="text-gray-900 font-medium">서울특별시 강남구 테헤란로 123 카포에라빌딩 3층</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 flex items-center justify-center text-primary mr-3">
+                            <i class="ri-road-map-line"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">지역</p>
+                            <p class="text-gray-900 font-medium">서울 > 강남구</p>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <a
+                                href="#"
+                                target="_blank"
+                                class="flex items-center justify-center w-full bg-primary text-white py-3 !rounded-button whitespace-nowrap"
+                        >
+                            <div class="w-5 h-5 flex items-center justify-center mr-2">
+                                <i class="ri-navigation-line"></i>
+                            </div>
+                            길찾기
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+<footer class="bg-gray-800 text-white mt-16">
+    <div class="container mx-auto px-4 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <h3 class="text-xl font-['Pacifico'] mb-4">logo</h3>
+                <p class="text-gray-400">한국 카포에라 커뮤니티의 중심, 당신의 카포에라 여정을 함께합니다.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold mb-4">바로가기</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-400 hover:text-white">홈</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white">도장 찾기</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white">이벤트</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white">커뮤니티</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold mb-4">고객지원</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-400 hover:text-white">자주 묻는 질문</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white">도장 등록하기</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white">이용약관</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white">개인정보처리방침</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold mb-4">뉴스레터 구독</h3>
+                <p class="text-gray-400 mb-4">카포에라 이벤트와 소식을 받아보세요</p>
+                <form class="flex">
+                    <input
+                            type="email"
+                            placeholder="이메일 주소"
+                            class="px-4 py-2 w-full text-gray-900 rounded-l-button focus:outline-none"
+                    >
+                    <button type="submit" class="bg-primary px-4 py-2 !rounded-r-button !rounded-l-none whitespace-nowrap">구독</button>
+                </form>
+            </div>
+        </div>
+        <div class="border-t border-gray-700 mt-12 pt-8 text-center text-gray-400">
+            <p>&copy; 2025 한국 카포에라 커뮤니티. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
+<script id="likeButtonScript">
+    document.addEventListener('DOMContentLoaded', function() {
+        const likeButton = document.querySelector('button i.ri-heart-line');
+        if (likeButton) {
+            likeButton.parentElement.parentElement.addEventListener('click', function() {
+                if (likeButton.classList.contains('ri-heart-line')) {
+                    likeButton.classList.remove('ri-heart-line');
+                    likeButton.classList.add('ri-heart-fill');
+                    likeButton.classList.add('text-red-500');
+                } else {
+                    likeButton.classList.remove('ri-heart-fill');
+                    likeButton.classList.remove('text-red-500');
+                    likeButton.classList.add('ri-heart-line');
+                }
+            });
+        }
+    });
+</script>
+
+<!--작업중-->
+<script id="galleryScript">
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const tabButtons = document.querySelectorAll('[data-tab]');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabButtons.forEach(button => {
+
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('text-primary');
+                });
+                button.classList.add('text-primary');
+
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                    if (content.id === tabName) {
+                        content.classList.remove('hidden');
+                    }
+                });
+            });
+        });
+
+        const photos = document.querySelectorAll('#photos .group');
+        photos.forEach(photo => {
+            photo.addEventListener('click', () => {
+                const img = photo.querySelector('img');
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50';
+                modal.innerHTML = `
+<div class="relative max-w-4xl w-full mx-4">
+<img src="${img.src}" class="w-full h-auto rounded-lg" alt="${img.alt}">
+<button class="absolute top-4 right-4 text-white hover:text-gray-300">
+<div class="w-8 h-8 flex items-center justify-center">
+<i class="ri-close-line ri-2x"></i>
+</div>
+</button>
+</div>
+`;
+                document.body.appendChild(modal);
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal || e.target.closest('button')) {
+                        modal.remove();
+                    }
+                });
+            });
+        });
+        const videos = document.querySelectorAll('#videos .group');
+        const videoData = [
+            {
+                title: '카포에라 기초 동작 가이드',
+                description: '초보자를 위한 기본 동작과 스텝을 상세히 설명하는 가이드 영상입니다. 집에서도 따라할 수 있는 기초 동작들을 마스터 호세 실바가 직접 시연합니다.',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+            },
+            {
+                title: '2025 카포에라 시연회 하이라이트',
+                description: '2025년 상반기 카포에라 마스터 아카데미 시연회의 하이라이트 영상입니다. 수련생들의 화려한 기술과 열정적인 공연을 담았습니다.',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+            }
+        ];
+        videos.forEach((video, index) => {
+            video.addEventListener('click', () => {
+                const videoInfo = videoData[index];
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50';
+                modal.innerHTML = `
+<div class="relative max-w-5xl w-full mx-4">
+<div class="aspect-video w-full">
+<iframe
+src="${videoInfo.videoUrl}"
+class="w-full h-full rounded-lg"
+frameborder="0"
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+allowfullscreen>
+</iframe>
+</div>
+<div class="mt-4 text-white">
+<h3 class="text-xl font-bold">${videoInfo.title}</h3>
+<p class="mt-2 text-gray-300">${videoInfo.description}</p>
+</div>
+<button class="absolute -top-12 right-0 text-white hover:text-gray-300">
+<div class="w-8 h-8 flex items-center justify-center">
+<i class="ri-close-line ri-2x"></i>
+</div>
+</button>
+</div>
+`;
+                document.body.appendChild(modal);
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal || e.target.closest('button')) {
+                        modal.remove();
+                    }
+                });
+            });
+        });
+    });
+</script>
+
+
+</body>
+</html>

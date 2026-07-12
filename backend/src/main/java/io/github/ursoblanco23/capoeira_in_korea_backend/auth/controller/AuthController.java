@@ -1,0 +1,91 @@
+package io.github.ursoblanco23.capoeira_in_korea_backend.auth.controller;
+
+import io.github.ursoblanco23.capoeira_in_korea_backend.auth.dto.*;
+import io.github.ursoblanco23.capoeira_in_korea_backend.auth.service.AuthService;
+import io.github.ursoblanco23.capoeira_in_korea_backend.common.dto.ApiResponse;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/auth")
+public class AuthController {
+
+    private static final String REFRESH_COOKIE_NAME = "refresh_token";
+    private static final String REFRESH_COOKIE_PATH = "/api/auth"; // context-path=/api 라면 OK
+    private static final String SAME_SITE = "Lax";
+
+    private final AuthService authService;
+
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest req) {
+        SignupResponse data = authService.signup(req);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(data, "회원가입이 완료되었습니다."));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AccessTokenDto>> login(
+            @Valid @RequestBody LoginRequest req,
+            HttpServletResponse response
+    ) {
+        IssuedTokens tokens = authService.login(req);
+        setRefreshCookie(response, tokens.getRefreshToken(), tokens.getRefreshExpiresAt());
+        return ResponseEntity.ok(ApiResponse.success(tokens.getAccessToken()));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AccessTokenDto>> refresh(
+            @CookieValue(name = "refresh_token", required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
+        IssuedTokens tokens = authService.refresh(refreshToken);
+        setRefreshCookie(response, tokens.getRefreshToken(), tokens.getRefreshExpiresAt());
+        return ResponseEntity.ok(ApiResponse.success(tokens.getAccessToken()));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
+        authService.logout(refreshToken);
+        clearRefreshCookie(response);
+        return ResponseEntity.noContent().build();
+    }
+
+    private void setRefreshCookie(HttpServletResponse response, String refreshToken, LocalDateTime refreshExpiresAt) {
+        long maxAgeSeconds = Duration.between(LocalDateTime.now(), refreshExpiresAt).getSeconds();
+        if (maxAgeSeconds < 0) maxAgeSeconds = 0; // 만약 시간이 역전되면 방어
+
+        ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
+                .httpOnly(true)
+                .secure(true) // 현재 상황에서 프로필 분기 안 하겠다 = HTTPS 환경 전제
+                .path(REFRESH_COOKIE_PATH)
+                .sameSite(SAME_SITE)
+                .maxAge(maxAgeSeconds)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void clearRefreshCookie(HttpServletResponse response) {
+        ResponseCookie delete = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(true)
+                .path(REFRESH_COOKIE_PATH)
+                .sameSite(SAME_SITE)
+                .maxAge(0)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
+    }
+}

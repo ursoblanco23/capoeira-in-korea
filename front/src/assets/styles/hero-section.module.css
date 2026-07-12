@@ -1,0 +1,18 @@
+/*.hero-section {*/
+/*    background-image: url('https://readdy.ai/api/search-image?query=A%20dynamic%20capoeira%20performance%20scene%20in%20Korea%20with%20practitioners%20in%20white%20uniforms%20performing%20acrobatic%20moves.%20The%20image%20shows%20a%20blend%20of%20Korean%20and%20Brazilian%20cultural%20elements.%20The%20left%20side%20has%20a%20clean%20gradient%20background%20that%20smoothly%20transitions%20to%20the%20right%20side%20where%20the%20action%20is%20happening.%20The%20lighting%20is%20professional%20and%20the%20composition%20is%20balanced.&width=1920&height=1080&seq=1&orientation=landscape');*/
+/*    background-size: cover;*/
+/*    background-position: center;*/
+/*}*/
+
+.hero-section {
+    /* 히어로가 너무 작게 보이면 최소 높이를 주는 게 일반적 */
+    min-height: 520px;
+}
+
+/* 화면이 큰 경우 히어로가 더 시원하게 보이도록 */
+@media (min-width: 768px) {
+    .hero-section {
+        min-height: 640px;
+    }
+}
+

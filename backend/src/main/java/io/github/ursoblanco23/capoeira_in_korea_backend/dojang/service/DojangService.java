@@ -1,0 +1,30 @@
+package io.github.ursoblanco23.capoeira_in_korea_backend.dojang.service;
+
+import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangCreateDTO;
+import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangResponseDTO;
+import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangUpdateDTO;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+public interface DojangService {
+
+    /**
+     * 통합 검색 메서드
+     * - searchParam 있으면 이름 or 도로명 or 상세주소 검색
+     * - searchParam 없으면 전체 조회
+     */
+    List<DojangResponseDTO> getDojangs(String searchParam);
+
+    /**
+     * 도장 등록 메서드
+     * @param request: insert할 데이터
+     * @param thumbnailImage: 썸네일용 이미지 파일
+     * @return DojangId
+     */
+    Long createDojang(DojangCreateDTO request, MultipartFile thumbnailImage);
+
+    Long updateDojang(Long dojangId, DojangUpdateDTO request, MultipartFile thumbnailImage);
+
+    void deleteDojangById(Long id);
+}

@@ -1,0 +1,18 @@
+/* ================================
+   Background Image Layout System
+================================ */
+
+/* 섹션 전체를 채우는 배경 이미지 */
+.bg-section-image {
+    @apply absolute inset-0 w-full h-full object-cover object-center;
+}
+
+/* 히어로/배너용 오버레이 */
+.bg-overlay-light {
+    @apply absolute inset-0 bg-gradient-to-r from-white/90 to-white/50;
+}
+
+/* 어두운 히어로용 (다른 페이지 대비) */
+.bg-overlay-dark {
+    @apply absolute inset-0 bg-black/40;
+}

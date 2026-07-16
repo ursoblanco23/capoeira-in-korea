@@ -127,6 +127,12 @@ public class LocalStorageService implements StorageService {
         }
     }
 
+    /**
+     *
+     * @param basePath
+     * @param path
+     * @return
+     */
     private String createPublicPath(String basePath, String path) {
         String normalizedBasePath = basePath
                 .replace('\\', '/')

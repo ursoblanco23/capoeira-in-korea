@@ -26,9 +26,13 @@ backendupload
 !backendupload.gitkeep
 
 ### Local TLS certificates ###
-infracertsdev
-!infracertsdev.gitkeep
+infra/certs/dev/*
+!infra/certs/dev/.gitkeep
 
 ### Logs ###
 .log
 logs
+
+### Database backup ###
+backups/
+*.dump

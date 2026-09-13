@@ -8,5 +8,6 @@ public interface UserService {
     User getUserById(Long id);
     UserMeDto getMe(Long id);
     UserMeDto updateMyProfileImage(long userId, MultipartFile file);
+    void withdrawMyAccount(long userId);
 }
 

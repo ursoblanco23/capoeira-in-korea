@@ -29,6 +29,7 @@ export const ENDPOINTS = {
         ME: `${USER_BASE}/me`,
         PROFILE: `/users/profile`,
         BY_ID: (id: number | string) => `/users/${id}`,
+        WITHDRAW_ACCOUNT: `${USER_BASE}/me`,
     },
 
     // 인증 관련 엔드포인트
@@ -39,6 +40,7 @@ export const ENDPOINTS = {
         LOGOUT: `/auth/logout`,
         FORGOT_PASSWORD: `/auth/forgot-password`,
         RESET_PASSWORD: `/auth/reset-password`,
+        CHANGE_PASSWORD: `/auth/password`,
     },
 
     // 커뮤니티 관련 엔드포인트 (향후 확장용)

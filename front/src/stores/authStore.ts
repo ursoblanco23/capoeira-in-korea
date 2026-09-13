@@ -21,6 +21,7 @@ type AuthState = {
     clearSession: () => void;
 };
 
+
 export const useAuthStore = create<AuthState>((set) => ({
     accessToken: null,
     accessTokenMeta: null,
@@ -40,7 +41,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         }),
 
     setMe: (meDto: UserMeDto) => {
-        console.log("setMe profile url test: ", meDto.profileImgUrl);
         set({me: meDto});
     },
     clearSession: () =>
@@ -51,3 +51,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             me: null
         }),
 }));
+
+export const useIsAuthenticated = (): boolean =>
+    useAuthStore((state) => state.authStatus === "authenticated");

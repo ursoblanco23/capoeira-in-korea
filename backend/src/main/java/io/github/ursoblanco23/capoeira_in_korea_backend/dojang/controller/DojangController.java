@@ -1,14 +1,16 @@
 package io.github.ursoblanco23.capoeira_in_korea_backend.dojang.controller;
 
+import io.github.ursoblanco23.capoeira_in_korea_backend.auth.security.UserPrincipal;
 import io.github.ursoblanco23.capoeira_in_korea_backend.common.dto.ApiResponse;
-import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangCreateDTO;
+import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangFormDTO;
 import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangResponseDTO;
-import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangUpdateDTO;
 import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.service.DojangService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,25 +36,36 @@ public class DojangController {
         return ResponseEntity.ok(ApiResponse.success(dojangs));
     }
 
+    @GetMapping("/{dojangId}")
+    public ResponseEntity<ApiResponse<DojangResponseDTO>> getDojangById(
+            @PathVariable long dojangId
+    ) {
+        DojangResponseDTO dojang = dojangService.getDojangById(dojangId);
+        return ResponseEntity.ok(ApiResponse.success(dojang));
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Long>> createDojang(
-            @RequestPart("data") DojangCreateDTO request
+            @AuthenticationPrincipal UserPrincipal principal
+            ,@Valid @RequestPart("data") DojangFormDTO request
             ,@RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage
     ) {
+        //TODO: 작업 끝나고 지우기.
         log.info("createDojang > dojang : {}", request);
         log.info("createDojang > thumbnailImage : {}", thumbnailImage);
 
-        long dojangId = dojangService.createDojang(request, thumbnailImage);
+        long dojangId = dojangService.createDojang(request, thumbnailImage, principal);
         return ResponseEntity.ok(ApiResponse.success(dojangId));
     }
 
-    @PatchMapping(value = "/{dojangId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{dojangId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Long>> updateDojang(
-            @PathVariable Long dojangId,
-            @RequestPart("data") DojangUpdateDTO request
+            @AuthenticationPrincipal UserPrincipal principal
+            ,@PathVariable Long dojangId
+            ,@Valid @RequestPart("data") DojangFormDTO request
             ,@RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage
     ) {
-        Long updatedId = dojangService.updateDojang(dojangId, request, thumbnailImage);
+        Long updatedId = dojangService.updateDojang(dojangId, request, thumbnailImage, principal);
         return ResponseEntity.ok(ApiResponse.success(updatedId));
     }
 

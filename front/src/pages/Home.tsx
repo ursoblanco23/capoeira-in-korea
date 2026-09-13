@@ -6,14 +6,14 @@ import Events from "../components/features/Home/Events/Events.tsx";
 import CommunityHighlight from "../components/features/Home/CommunityHighlight/CommunityHighlight.tsx";
 import Newsletter from "@/components/features/Home/NewsLetter/NewsLetter.tsx";
 import FindDojang from "@/components/features/Home/FindDojang/FindDojang.tsx";
-
+import HomeDojangListSection from "@/components/features/Home/DojangList/HomeDojangListSection.tsx";
 const Home = () => {
-
     return (
         <main>
             <Hero />
             <MainContents />
             <FindDojang />
+            <HomeDojangListSection />
             <Events />
             <CommunityHighlight />
             <Newsletter />

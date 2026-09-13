@@ -15,16 +15,16 @@ public class Address {
     @Column(name = "zip_code", length = 10)
     private String zipCode;
 
-    @Column(name = "road_address", length = 100)
+    @Column(name = "road_address", length = 200)
     private String roadAddress;
 
-    @Column(name = "detail_address", length = 100)
+    @Column(name = "detail_address", length = 200)
     private String detailAddress;
 
     @Column(name = "sido_name", length = 30)
     private String sidoName;
 
-    @Column(name = "sigungu_name", length = 50)
+    @Column(name = "sigungu_name", length = 30)
     private String sigunguName;
 
     @Column(name = "eupmyeondong_name", length = 50)

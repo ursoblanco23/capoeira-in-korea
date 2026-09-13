@@ -6,8 +6,8 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
@@ -26,17 +26,20 @@ public class JwtProvider {
     private final String issuer;
     private final int accessMinutes;
     private final int refreshDays;
+    private final Clock clock;
 
     public JwtProvider(
             @Value("${security.jwt.secret}") String secret,
             @Value("${security.jwt.issuer}") String issuer,
-            @Value("${security.jwt.access-minutes:30}") int accessMinutes,
-            @Value("${security.jwt.refresh-days:7}") int refreshDays
+            @Value("${security.jwt.access-minutes:10}") int accessMinutes,
+            @Value("${security.jwt.refresh-days:14}") int refreshDays,
+            Clock clock
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.issuer = issuer;
         this.accessMinutes = accessMinutes;
         this.refreshDays = refreshDays;
+        this.clock = clock;
     }
 
     @PostConstruct
@@ -47,7 +50,7 @@ public class JwtProvider {
     }
 
     public String createAccessToken(Long userId) {
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         Instant exp = now.plus(accessMinutes, ChronoUnit.MINUTES);
 
         return Jwts.builder()
@@ -60,15 +63,12 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String createRefreshToken(Long userId) {
-        Instant now = Instant.now();
-        Instant exp = now.plus(refreshDays, ChronoUnit.DAYS);
-
+    public String createRefreshToken(Long userId, Instant issuedAt, Instant expiresAt) {
         return Jwts.builder()
                 .setIssuer(issuer)
                 .setSubject(String.valueOf(userId))
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(exp))
+                .setIssuedAt(Date.from(issuedAt))
+                .setExpiration(Date.from(expiresAt))
                 .setId(UUID.randomUUID().toString())
                 .claim(CLAIM_TOKEN_TYPE, REFRESH)
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -85,8 +85,12 @@ public class JwtProvider {
         return parseUserId(claims);
     }
 
-    public LocalDateTime getRefreshExpiry() {
-        return LocalDateTime.now().plusDays(refreshDays);
+    public Instant calculateRefreshExpiry(Instant issuedAt) {
+        return issuedAt.plus(refreshDays, ChronoUnit.DAYS);
+    }
+
+    public int getAccessExpiresInSeconds() {
+        return Math.multiplyExact(accessMinutes, 60);
     }
 
     //token의 claims를 받아서 현재 token의 타입을 체크 후 반환

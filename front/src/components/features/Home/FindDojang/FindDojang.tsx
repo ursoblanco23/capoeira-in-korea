@@ -1,42 +1,25 @@
 import React, {type ChangeEvent, useState} from 'react';
-import type {Dojang} from '@/types/dojang.ts';
 import '@/components/features/Home/FindDojang/FindDojang.css';
 import KakaoMap from "@/components/features/Home/FindDojang/components/KakaoMap/KakaoMap.tsx";
-import DojangCardSection from "@/components/features/Home/FindDojang/components/DojangCardSection.tsx";
-import {useDojangList} from "@/stores/dojangStore.ts";
+import {useDojangsQuery} from "@/hooks/queries/useDojangsQuery.ts";
 
 
 const FindDojang = () => {
-    const dojangList = useDojangList();
     const [searchParam, setSearchParam] = useState<string>('');
-    const [dojangs, setDojangs] = useState<Dojang[]>([]);
+    const [submittedSearchParam, setSubmittedSearchParam] = useState('');
+    const {data: searchedDojangs = [], isPending, isError} = useDojangsQuery(
+        submittedSearchParam
+            ? {searchParam: submittedSearchParam}
+            : undefined,
+    );
 
     const onChangeInput = ({target: {value}}: ChangeEvent<HTMLInputElement>) => {
         setSearchParam(value);
     };
 
     const onClickSearchBtn = () => {
-        const lowerSearch = searchParam.toLowerCase();
-
-        const res = dojangList.filter(dojang =>
-            dojang.name.toLowerCase().includes(lowerSearch) ||
-            dojang.roadAddress.toLowerCase().includes(lowerSearch) ||
-            dojang.detailAddress.toLowerCase().includes(lowerSearch)
-        );
-
-        // 검색 결과가 없을 경우 변동 x
-        // 검색 키워드 없을 때 -> 전체 도장 조회
-        setDojangs(res);
-
-        /* back에 직접 api로 조회 */
-        // dojangService.getDojangs({searchParam})
-        //     .then(res => {
-        //         setDojangs(res)
-        //     })
-        //     .catch(err => {
-        //         console.log('getDojangs err :', err)
-        //     });
-    }
+        setSubmittedSearchParam(searchParam.trim());
+    };
 
     return (
         <section id="find-dojang" className="py-16 bg-gray-50">
@@ -64,16 +47,16 @@ const FindDojang = () => {
                     </button>
                 </div>
 
-                <KakaoMap dojangs={dojangs}/>
+                <KakaoMap dojangs={searchedDojangs}/>
 
-                <h3 className="text-2xl font-bold mb-6">이런 도장은 어떠세요?</h3>
-                <DojangCardSection dojangList={dojangList}/>
+                {isPending && (
+                    <div className="text-center text-gray-600">도장 정보를 불러오는 중입니다.</div>
+                )}
 
-                <div className="text-center mt-8">
-                    <a href="#"
-                       className="px-6 py-3 border border-primary text-primary hover:bg-primary hover:text-white transition-colors !rounded-button whitespace-nowrap inline-block">모든
-                        도장 보기</a>
-                </div>
+                {isError && searchedDojangs.length === 0 && (
+                    <div className="text-center text-red-600">도장 정보를 불러오지 못했습니다.</div>
+                )}
+
             </div>
         </section>
     )

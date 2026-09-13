@@ -14,8 +14,8 @@ import {normalizeApiError} from "../utils/normalizeApiError";
 import {DEFAULT_CONFIG} from "./apiConfig";
 import {createLogger} from "./logger";
 import {refreshAccessToken} from "./refreshAccessToken";
-import {ENDPOINTS} from "@/services/api/endpoints";
-import {isAccessTokenExpired} from "@/services/api/auth/accessTokenUtils.ts";
+import {ENDPOINTS} from "@/services/api/endpoints/base";
+import {isAccessTokenExpired} from "../auth/utils/accessTokenUtils.ts";
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 const PUBLIC_AUTH_PATHS = [

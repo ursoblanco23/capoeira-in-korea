@@ -1,12 +1,6 @@
-import { authApi} from './auth';
+import { authApi} from '../auth/api/authApi';
 import { dojangApi } from './dojang';
 import { uploadApi } from './upload';
-
-export const apiEndpoints = {
-    dojang: dojangApi,
-    auth: authApi,
-    upload: uploadApi,
-} as const;
 
 // 개별 API들도 export (하위 호환성)
 export { dojangApi, authApi, uploadApi };
@@ -18,6 +12,4 @@ export type {
     DojangSearchParams,
     DojangListResponse,
     DojangFormRequest,
-    // UpdateDojangRequest,
-    ClassSchedule,
 } from '@/types/dojang.ts';

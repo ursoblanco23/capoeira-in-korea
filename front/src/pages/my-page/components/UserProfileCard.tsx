@@ -3,7 +3,6 @@ import { useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import {userService} from "@/services/api/user/service/userService.ts";
 import type {ProfileImageForm} from "@/services/api/user/types/ProfileImageForm.ts";
-import {resolveMediaUrl} from "@/utils/media.ts";
 
 
 type Props = {

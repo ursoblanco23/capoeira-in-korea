@@ -1,19 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import defaultThumbnail from '@/assets/images/default-dojang-thumbnail.png';
 import { THUMBNAIL_IMG_UPLOAD_CONFIG as IMG_CONFIG } from '@/constants/fileConstants.ts';
 import {createFormDataFromRequest, validateThumbnailImage} from '@/utils/util.ts';
-import type {DojangFormRequest, Dojang} from "@/types/dojang.ts";
-import {useUser} from "@/services/api/user/store/userStore.ts";
-
-// DojangDetail 인터페이스를 기반으로 폼 데이터 타입 정의
-type DojangFormData = Pick<Dojang, 
-    'id' | 'name' | 'zipCode' | 'roadAddress' | 'detailAddress' |
-    'sidoName' | 'sigunguName' | 'eupmyeondongName' | 'phone' |
-    'priceRange' | 'instructorName' | 'description' | 'thumbnailUrl'
-> & {
-    thumbnailImage: File | null;
-};
+import type {DojangFormRequest} from "@/types/dojang.ts";
+import {useAuthStore} from "@/stores/authStore.ts";
+import type {DojangFormData} from "@/components/features/Dojang/types/DojangFormData.ts";
+import {openPostcodeSearch} from "@/utils/postcode.ts";
+import {formatKoreanPhoneInput, formatPhoneForDisplay} from "@/utils";
 
 const initialDojangFormData: DojangFormData = {
     id: 0,
@@ -25,29 +19,41 @@ const initialDojangFormData: DojangFormData = {
     sigunguName: '',
     eupmyeondongName: '',
     phone: '',
-    priceRange: '',
+    priceInfo: '',
     instructorName: '',
     description: '',
     thumbnailImage: null,
+    latitude: 0,
+    longitude: 0,
 }
 
 interface DojangFormProps {
-    dojangId: number
     initialData?: Partial<DojangFormData>;
     mode: 'create' | 'update';
-    onSubmit: (dojangId: number, formData: FormData) => Promise<void>;
+    onSubmit: (submitData: FormData) => Promise<void>;
 }
 
 const DojangForm: React.FC<DojangFormProps> = ({
-    dojangId,
     initialData = {},
     mode,
     onSubmit
 }) => {
-    const user = useUser();
+    const me = useAuthStore((state) => state.me);
     const navigate = useNavigate();
-    const [formData, setFormData] = useState<DojangFormData>({
-        ...initialDojangFormData,
+    const [formData, setFormData] = useState<DojangFormData>(() => {
+        const initializedFormData = {
+            ...initialDojangFormData,
+            ...initialData,
+        };
+
+        if (mode === 'update') {
+            return {
+                ...initializedFormData,
+                phone: formatPhoneForDisplay(initialData.phone, 'national'),
+            };
+        }
+
+        return initializedFormData;
     });
     const [previewImage, setPreviewImage] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,24 +70,18 @@ const DojangForm: React.FC<DojangFormProps> = ({
         // }
     // }, [initialData.thumbnailImage]);
 
-    useEffect(() => {
-        if (mode === 'update' && initialData) {
-            // console.log('update mode >>> initialData: ', initialData);
-
-            setFormData(prev => {
-                return {
-                    ...prev,
-                    ...initialData,
-                };
-            });
-        }
-    }, [initialData, mode]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+
+        //formatter
+        const nextValue = name === 'phone'
+            ? formatKoreanPhoneInput(value)
+            : value;
+
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: nextValue
         }));
     };
 
@@ -104,6 +104,7 @@ const DojangForm: React.FC<DojangFormProps> = ({
         reader.readAsDataURL(file);
 
         // 상태 저장
+
         setFormData(prev => ({
             ...prev,
             thumbnailImage: file
@@ -111,18 +112,12 @@ const DojangForm: React.FC<DojangFormProps> = ({
     };
 
     const handleZipCodeSearch = () => {
-        new window.daum.Postcode({
-            oncomplete: function (data: any) {
-                setFormData((prev) => ({
-                    ...prev,
-                    zipCode: data.zonecode,
-                    roadAddress: data.roadAddress,
-                    sidoName: data.sido,
-                    sigunguName: data.sigungu,
-                    eupmyeondongName: data.bname, // 법정동/읍/면/동
-                }));
-            },
-        }).open();
+        openPostcodeSearch((address) => {
+            setFormData((prev) => ({
+                ...prev,
+                ...address,
+            }));
+        });
     };
 
     const getCoordinate = (address: string): Promise<{
@@ -153,36 +148,51 @@ const DojangForm: React.FC<DojangFormProps> = ({
     };
 
     const convertFormToRequest = async (formData: DojangFormData): Promise<DojangFormRequest> => {
-        //주소로 위도, 경도 가져오기
-        const addr = formData.roadAddress + ' ' + formData.detailAddress;
-        const crd = await getCoordinate(addr);
+        if (!me) {
+            throw new Error("Authenticated user is unavailable.");
+        }
 
-        if (crd.error) {
-            throw Error(`위도, 경도 가져오기 실패. 주소를 다시 확인해주세요.`);
+        const roadAddress = formData.roadAddress.trim();
+        const initialRoadAddress = initialData.roadAddress?.trim();
+        const shouldRecalculateCoordinate =
+            mode === 'create' || roadAddress !== initialRoadAddress;
+
+        let latitude = formData.latitude;
+        let longitude = formData.longitude;
+
+        if (shouldRecalculateCoordinate) {
+            const coordinate = await getCoordinate(roadAddress);
+
+            if (coordinate.error) {
+                throw new Error('위도, 경도 가져오기에 실패했습니다. 주소를 다시 확인해주세요.');
+            }
+
+            latitude = coordinate.latitude;
+            longitude = coordinate.longitude;
         }
 
         let data: DojangFormRequest["data"] = {
             name: formData.name,
-            zipCode: formData.zipCode,
-            roadAddress: formData.roadAddress,
-            detailAddress: formData.detailAddress,
-            sidoName: formData.sidoName,
-            sigunguName: formData.sigunguName,
-            eupmyeondongName: formData.eupmyeondongName,
+            address: {
+                zipCode: formData.zipCode,
+                roadAddress: formData.roadAddress,
+                detailAddress: formData.detailAddress,
+                sidoName: formData.sidoName,
+                sigunguName: formData.sigunguName,
+                eupmyeondongName: formData.eupmyeondongName,
+            },
             phone: formData.phone || '',
-            priceRange: formData.priceRange || '',
+            priceInfo: formData.priceInfo || '',
             instructorName: formData.instructorName || '',
             description: formData.description || '',
-            latitude: crd.latitude.toString(),
-            longitude: crd.longitude.toString(),
-            registrantId: user!.id.toString(),
-            altText: `${formData.name} 도장 thumbnail image`
+            latitude: latitude.toFixed(8),
+            longitude: longitude.toFixed(8),
+            altText: `도장 thumbnail image`
         }
 
         if (mode === 'update') {
             data = {
                 ...data,
-                id: formData.id.toString(), // ID 추가
             }
         }
 
@@ -210,7 +220,7 @@ const DojangForm: React.FC<DojangFormProps> = ({
                 console.log(key, value);
             }
 
-            await onSubmit(dojangId, submitData);
+            await onSubmit(submitData);
         } finally {
             setIsSubmitting(false);
         }
@@ -350,14 +360,14 @@ const DojangForm: React.FC<DojangFormProps> = ({
             </div>
 
             <div>
-                <label htmlFor="priceRange" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="priceInfo" className="block text-sm font-medium text-gray-700 mb-2">
                     수강료
                 </label>
                 <input
                     type="text"
-                    id="priceRange"
-                    name="priceRange"
-                    value={formData.priceRange}
+                    id="priceInfo"
+                    name="priceInfo"
+                    value={formData.priceInfo}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-button focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                     placeholder="예: 월 주1회 120,000원, 주 2회 150,000원, 주3회 200,000원 등"

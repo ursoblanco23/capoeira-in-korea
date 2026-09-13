@@ -1,11 +1,20 @@
 import {useAuthStore} from "@/stores/authStore.ts";
-import {Navigate} from "react-router-dom";
+import {Link, Navigate, useNavigate} from "react-router-dom";
 import {UserProfileCard} from "@/pages/my-page/components/UserProfileCard.tsx";
+import {PAGE} from "@/constants/routes.ts";
+import {userService} from "@/services/api/user/service/userService.ts";
+import {toast} from "react-toastify";
+import {useState} from "react";
+import {extractErrorMessage} from "@/utils/error.ts";
+import {formatPhoneForDisplay} from "@/utils";
 
 export function MyPage() {
     const authStatus = useAuthStore((state) => state.authStatus);
     const me = useAuthStore((state) => state.me);
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
 
+    // MyPage init start ------------
     if (authStatus === "checking") {
         return null;
     }
@@ -17,6 +26,39 @@ export function MyPage() {
     if (!me) {
         return null;
     }
+    // init end ------------
+
+
+
+    const handleWithdrawMyAccount = async () => {
+        const confirmed = window.confirm(
+            "정말 회원 탈퇴하시겠습니까?\n탈퇴한 계정은 복구할 수 없습니다."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            await userService.withdrawMyAccount();
+
+            toast.success(
+                "회원 탈퇴가 완료되었습니다. 그동안 함께해 주셔서 감사합니다."
+            );
+
+            useAuthStore.getState().clearSession();
+            navigate(PAGE.HOME, { replace: true });
+        } catch (error: unknown) {
+            console.warn(extractErrorMessage(error));
+            toast.error("회원 탈퇴 처리 중 오류가 발생했습니다.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
 
     return (
         <main className="min-h-screen bg-gray-50">
@@ -45,7 +87,10 @@ export function MyPage() {
                                 <InfoItem label="아이디" value={me.loginId}/>
                                 <InfoItem label="닉네임" value={me.nickname}/>
                                 <InfoItem label="이메일" value={me.email}/>
-                                <InfoItem label="전화번호" value={me.phone ?? "미등록"} />
+                                <InfoItem
+                                    label="전화번호"
+                                    value={me.phone ? formatPhoneForDisplay(me.phone, "international") : "미등록"}
+                                />
                             </div>
                         </div>
 
@@ -68,18 +113,21 @@ export function MyPage() {
                             </h3>
 
                             <div className="mt-6 flex flex-wrap gap-3">
-                                <button
-                                    type="button"
+                                <Link
+                                    to={PAGE.CHANGE_PASSWORD}
                                     className="rounded-button border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
                                 >
                                     비밀번호 변경
-                                </button>
+                                </Link>
 
                                 <button
                                     type="button"
-                                    className="rounded-button border border-red-300 px-4 py-2 text-sm font-medium text-red-500 transition hover:bg-red-50"
+                                    disabled={loading}
+                                    aria-busy={loading}
+                                    className="rounded-button border border-red-300 px-4 py-2 text-sm font-medium text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                    onClick={handleWithdrawMyAccount}
                                 >
-                                    회원 탈퇴
+                                    {loading ? "탈퇴 처리 중..." : "회원 탈퇴"}
                                 </button>
                             </div>
                         </div>

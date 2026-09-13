@@ -1,8 +1,7 @@
 import type {UserMeDto} from "@/services/api/user/types/UserMeDto.ts";
-import {userApi} from "@/services/api/user/api/user.ts";
-import {assertSuccessData} from "@/services/api/utils/assertSuccess.ts";
+import {userApi} from "../api/userApi.ts";
+import {assertSuccess, assertSuccessData} from "@/services/api/utils/assertSuccess.ts";
 import {useAuthStore} from "@/stores/authStore.ts";
-
 
 export const userService = {
     getMe: async (): Promise<UserMeDto> => {
@@ -14,9 +13,12 @@ export const userService = {
         const apiResponse = await userApi.updateProfileImage(formData);
         const userMeDto = assertSuccessData(apiResponse, "프로필 이미지 등록에 실패했습니다.");
 
-        console.log("updateProfileImage >>> userMeDto:", userMeDto);
-
         useAuthStore.getState().setMe(userMeDto);
-    }
+    },
+
+    withdrawMyAccount: async () => {
+        const ApiReponse = await userApi.handleWithdrawMyAccount();
+        assertSuccess(ApiReponse, "회원 탈퇴 처리 중 오류가 발생했습니다.");
+    },
 
 }

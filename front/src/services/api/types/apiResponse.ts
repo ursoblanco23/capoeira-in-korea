@@ -5,7 +5,7 @@ export interface ApiErrorBody {
     status: number;
     message: string;
 }
-export interface ApiResponse<T> {
+export interface ApiResponse<T = void> {
     success: boolean;
     data?: T;
     message?: string; // 성공 시 메시지 (선택적)

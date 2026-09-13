@@ -19,7 +19,7 @@ public class VideoFileUploadResult {
     private String mimeType;
     private Integer width;
     private Integer height;
-    private Long duration;            // 비디오 길이 (초)
+    private Integer durationSeconds;
     private Long fileSize;
     private LocalDateTime uploadedAt;
 }

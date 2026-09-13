@@ -6,13 +6,12 @@ import io.github.ursoblanco23.capoeira_in_korea_backend.common.entity.BaseSoftDe
 import io.github.ursoblanco23.capoeira_in_korea_backend.user.constants.RoleName;
 import io.github.ursoblanco23.capoeira_in_korea_backend.user.constants.UserStatus;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,8 +34,10 @@ public class User extends BaseSoftDeleteEntity {
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
+    @NotBlank(message = "닉네임을 입력해 주세요.")
+    @Size(min = 2, max = 20, message = "닉네임은 2~20자로 입력해 주세요.")
     @Column(name = "nickname", length = 50, unique = true)
-    private String nickname;
+    String nickname;
 
 
     @Column(name = "bio", columnDefinition = "text")
@@ -53,7 +54,7 @@ public class User extends BaseSoftDeleteEntity {
     private GenderType gender;
 
     @Column(name = "last_login_at")
-    private LocalDateTime lastLoginAt;
+    private Instant lastLoginAt;
 
     @Embedded
     private Address address;
@@ -66,10 +67,10 @@ public class User extends BaseSoftDeleteEntity {
     private UserStatus status;
 
     @Column(name = "email_verified_at")
-    private LocalDateTime emailVerifiedAt;
+    private Instant emailVerifiedAt;
 
     @Column(name = "phone_verified_at")
-    private LocalDateTime phoneVerifiedAt;
+    private Instant phoneVerifiedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserRole> userRoles = new ArrayList<>();
@@ -153,8 +154,8 @@ public class User extends BaseSoftDeleteEntity {
         return status == UserStatus.INACTIVE || status == UserStatus.DELETED;
     }
 
-    public void touchLastLogin() {
-        this.lastLoginAt = LocalDateTime.now();
+    public void touchLastLogin(Instant now) {
+        this.lastLoginAt = now;
     }
 
     public void updateProfile(
@@ -179,21 +180,21 @@ public class User extends BaseSoftDeleteEntity {
         this.passwordHash = passwordHash;
     }
 
-    public void verifyEmail() {
-        this.emailVerifiedAt = LocalDateTime.now();
+    public void verifyEmail(Instant now) {
+        this.emailVerifiedAt = now;
     }
 
-    public void verifyPhone() {
-        this.phoneVerifiedAt = LocalDateTime.now();
+    public void verifyPhone(Instant now) {
+        this.phoneVerifiedAt = now;
     }
 
     public void markInactive() {
         this.status = UserStatus.INACTIVE;
     }
 
-    public void markDeleted() {
+    public void withdraw(Instant now) {
         this.status = UserStatus.DELETED;
-        this.softDelete();
+        this.softDelete(now);
     }
 
     public void activate() {

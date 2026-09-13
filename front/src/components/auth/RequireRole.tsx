@@ -1,18 +1,21 @@
 import { Navigate } from "react-router-dom";
-import {useUser} from "@/services/api/user/store/userStore.ts";
-import type {Role} from "@/services/api/user/types/UserDto.ts";
+import {useAuthStore} from "@/stores/authStore.ts";
+import type {RoleName} from "@/constants/role.ts";
 
 interface Props {
-    allowedRoles: Role[]
+    allowedRoles: RoleName[]
     children: React.ReactNode;
 }
 
 export const RequireRole = ({ allowedRoles, children }: Props) => {
-    const user = useUser();
+    const me = useAuthStore((state) => state.me);
 
-    if (!user) return <Navigate to="/login" replace />;
+    if (!me) return null;
 
-    const hasPermission = user.roles.some((role) => allowedRoles.includes(role));
+    const hasPermission = me.roles.some((role) =>
+        allowedRoles.includes(role.roleName)
+    );
+
     if (!hasPermission) return <Navigate to="/unauthorized" replace />;
 
     return <>{children}</>;

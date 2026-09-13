@@ -6,5 +6,6 @@ public interface AuthService {
     SignupResponse signup(SignupRequest req);
     IssuedTokens login(LoginRequest req);
     IssuedTokens  refresh(java.lang.String rawRefresh);
+    void changePassword(Long userId, ChangePasswordRequest request);
     void logout(String req);
 }

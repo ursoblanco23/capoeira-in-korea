@@ -1,6 +1,7 @@
+import type {RoleName} from "@/constants/role.ts";
 
 export interface UserRoleDto {
     id: number;
-    roleName: string;
+    roleName: RoleName;
     displayName: string;
 }

@@ -1,6 +1,6 @@
 import type { Gender } from "./Gender";
 import type { UserStatus } from "./UserStatus.ts";
-import type { UserAddressDto } from "./UserAddressDto";
+import type { AddressDto } from "../../types/AddressDto";
 import type {UserRoleDto} from "@/services/api/user/types/UserRoleDto.ts";
 
 export interface UserMeDto {
@@ -13,7 +13,7 @@ export interface UserMeDto {
     phone: string | null;
     birthDate: string | null;
     gender: Gender | null;
-    address: UserAddressDto | null;
+    address: AddressDto | null;
     status: UserStatus;
     emailVerified: boolean;
     phoneVerified: boolean;

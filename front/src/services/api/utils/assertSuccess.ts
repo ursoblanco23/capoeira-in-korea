@@ -11,7 +11,7 @@ function throwApiError(res: ApiResponse<unknown>, fallbackMsg: string): never {
 }
 // API 응답이 성공인지 검증하는 유틸 함수
 // 응답 data가 없어도 되는 경우에 사용
-export function assertSuccess(res: ApiResponse<unknown>, fallbackMsg: string): void {
+export function assertSuccess(res: ApiResponse<void>, fallbackMsg: string): void {
     if (!res.success) {
         throwApiError(res, fallbackMsg);
     }

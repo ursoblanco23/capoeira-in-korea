@@ -29,9 +29,9 @@ export function normalizeApiError(
     const fieldErrors = apiResponse?.fieldErrors;
 
     return new ApiError(
-        status,
         code,
         message,
+        status,
         fieldErrors
     );
 }

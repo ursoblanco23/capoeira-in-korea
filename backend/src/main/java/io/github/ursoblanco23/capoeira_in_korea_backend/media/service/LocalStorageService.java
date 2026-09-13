@@ -2,7 +2,7 @@ package io.github.ursoblanco23.capoeira_in_korea_backend.media.service;
 
 import io.github.ursoblanco23.capoeira_in_korea_backend.exception.BusinessException;
 import io.github.ursoblanco23.capoeira_in_korea_backend.exception.constants.ErrorCode;
-import io.github.ursoblanco23.capoeira_in_korea_backend.media.dto.ImageFileUploadResult;
+import io.github.ursoblanco23.capoeira_in_korea_backend.media.dto.FileUploadResult;
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.enums.MediaFileType;
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.policy.MediaStoragePolicy;
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.policy.resolver.MediaStoragePolicyResolver;
@@ -37,20 +37,20 @@ public class LocalStorageService implements StorageService {
     private String basePath;
 
     @Override
-    public ImageFileUploadResult uploadFile(MultipartFile file, MediaFileType mediaFileType) {
+    public FileUploadResult uploadFile(MultipartFile file, MediaFileType mediaFileType) {
         LocalDateTime uploadedAt = LocalDateTime.now();
         String yearMonth = uploadedAt.format(YEAR_MONTH_FORMATTER);
 
         MediaStoragePolicy storagePolicy = mediaStoragePolicyResolver.resolve(mediaFileType);
         String publicDirectoryPath = createPublicPath(storagePolicy.getDirectoryBy(mediaFileType), yearMonth);
 
-        ImageFileUploadResult uploadResult = saveFile(file, publicDirectoryPath, uploadedAt);
+        FileUploadResult uploadResult = saveFile(file, publicDirectoryPath, uploadedAt);
 
         log.info("DB filePath: {}", uploadResult.getFilePath());
         return uploadResult;
     }
 
-    private ImageFileUploadResult saveFile(
+    private FileUploadResult saveFile(
             MultipartFile file,
             String publicDirectoryPath,
             LocalDateTime uploadedAt
@@ -63,12 +63,12 @@ public class LocalStorageService implements StorageService {
             createStoredDirectory(storedFilePath.getParent());
             file.transferTo(storedFilePath.toFile());
 
-            return ImageFileUploadResult.builder()
+            return FileUploadResult.builder()
                     .fileName(fileName)
                     .originalName(file.getOriginalFilename())
                     .filePath(publicFilePath)
                     .mimeType(file.getContentType())
-                    .size(file.getSize())
+                    .fileSize(file.getSize())
                     .uploadedAt(uploadedAt)
                     .build();
         } catch (IOException e) {
@@ -81,9 +81,7 @@ public class LocalStorageService implements StorageService {
         try {
             Path path = resolveStoredFilePath(filePath);
 
-            if (Files.exists(path)) {
-                log.info("Deleting file: {}, size: {}KB", path, Files.size(path) / 1024);
-                Files.delete(path);
+            if (Files.deleteIfExists(path)) {
                 log.info("File deleted: {}", path);
             } else {
                 log.warn("File does not exist, skipping delete: {}", path);

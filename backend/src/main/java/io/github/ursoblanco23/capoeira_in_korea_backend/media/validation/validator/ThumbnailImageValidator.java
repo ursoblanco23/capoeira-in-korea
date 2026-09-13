@@ -23,7 +23,7 @@ public class ThumbnailImageValidator implements MediaFileValidator {
     @Override
     public void validate(MultipartFile file) {
         MediaValidationPolicy policy =
-                mediaValidationPolicyResolver.resolve(MediaFileType.PROFILE_IMAGE);
+                mediaValidationPolicyResolver.resolve(MediaFileType.THUMBNAIL);
 
         validationSupport.validateNotEmpty(file);
         validationSupport.validateSize(file, policy);

@@ -1,23 +1,22 @@
 import React, { useState } from "react";
 import "@/assets/styles/Login.css";
-import { authService } from "@/services/api/services/authService";
+import { authService } from "../services/api/auth/service/authService";
 import {toast} from "react-toastify";
-import {useLocation, useNavigate} from "react-router-dom";
+import {Link, useLocation, useNavigate} from "react-router-dom";
+import {PAGE} from "@/constants/routes.ts";
+import type {LoginRequestDto} from "@/services/api/types/authApiTypes.ts";
 
-type LoginRequest = {
-    id: string;
-    pw: string;
-};
+
 
 const Login: React.FC = () => {
-    const [form, setForm] = useState<LoginRequest>({ id: "", pw: "" });
+    const [form, setForm] = useState<LoginRequestDto>({ id: "", password: "" });
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const navigate = useNavigate();
     const location = useLocation();
 
     const onChange =
-        (key: keyof LoginRequest) => (e: React.ChangeEvent<HTMLInputElement>) => {
+        (key: keyof LoginRequestDto) => (e: React.ChangeEvent<HTMLInputElement>) => {
             setForm((prev) => ({ ...prev, [key]: e.target.value }));
         };
 
@@ -26,7 +25,7 @@ const Login: React.FC = () => {
         setErrorMsg(null);
 
         const id = form.id.trim();
-        const pw = form.pw;
+        const pw = form.password;
 
         if (!id || !pw) {
             setErrorMsg("아이디와 비밀번호를 입력해주세요.");
@@ -52,7 +51,7 @@ const Login: React.FC = () => {
 
     return (
         <div className="login-root">
-            <div className="login-hero" />
+            <div className="login-hero"/>
 
             <div className="login-card">
                 <header className="login-header">
@@ -76,9 +75,9 @@ const Login: React.FC = () => {
                 </div>
 
                 <div className="divider">
-                    <span className="divider-line" />
+                    <span className="divider-line"/>
                     <span className="divider-text">또는 이메일로 로그인</span>
-                    <span className="divider-line" />
+                    <span className="divider-line"/>
                 </div>
 
                 <form className="login-form" onSubmit={handleSubmit}>
@@ -101,9 +100,11 @@ const Login: React.FC = () => {
                             id="login-password"
                             type="password"
                             placeholder="비밀번호를 입력하세요"
-                            value={form.pw}
-                            onChange={onChange("pw")}
+                            value={form.password}
+                            onChange={onChange("password")}
                             autoComplete="current-password"
+                            minLength={12}
+                            maxLength={64}
                             disabled={loading}
                         />
                     </div>
@@ -127,9 +128,11 @@ const Login: React.FC = () => {
                     </div>
                     <div className="footer-links-right">
                         <span>아직 회원이 아니신가요?</span>
-                        <button type="button" className="text-link strong">
+                        <Link
+                            to={PAGE.SIGN_UP}
+                            className="text-link strong">
                             회원가입
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>

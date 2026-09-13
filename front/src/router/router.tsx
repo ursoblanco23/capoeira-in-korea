@@ -12,7 +12,10 @@ import Unauthorized from "@/pages/Unauthorized.tsx";
 import DojangDetail from "@/pages/DojangDetail.tsx";
 import Login from "@/pages/Login.tsx";
 import SignupPage from "@/pages/SignupPage.tsx";
-import {MyPage} from "../pages/my-page/MyPage.tsx"; // type으로만 쓰이고 있으면 import type 으로 변경하라는데 아래에서 쓰이고 있음.
+import {MyPage} from "../pages/my-page/MyPage.tsx";
+import {ChangePassword} from "@/pages/my-page/components/ChangePassword.tsx";
+import RequireAuth from "@/components/auth/RequireAuth.tsx";
+import {ROLE} from "@/constants/role.ts"; // type으로만 쓰이고 있으면 import type 으로 변경하라는데 아래에서 쓰이고 있음.
 
 const router = createBrowserRouter([
     {
@@ -27,38 +30,48 @@ const router = createBrowserRouter([
                 element: <Login />,
             },
             {
-                path: PAGE.MY_PAGE,
-                element: <MyPage />
-            },
-            {
-                path: PAGE.DOJANG(':id'),
+                path: PAGE.DOJANG(':dojangId'),
                 element: <DojangDetail />
-            },
-            {
-                path: PAGE.ADMIN_DOJANG,
-                element: (
-                    <RequireRole allowedRoles={['dojang_admin', 'site_admin']}>
-                        <Outlet />
-                    </RequireRole>
-                ),
-                children: [
-                    {
-                        path: '',
-                        element: <DojangManage />,
-                    },
-                    {
-                        path: PAGE.ADMIN_DOJANG_REGIST,
-                        element: <DojangCreate />,
-                    },
-                    {
-                        path: PAGE.ADMIN_DOJANG_EDIT(':id'),
-                        element: <DojangUpdate />,
-                    },
-                ]
             },
             {
                 path: PAGE.SIGN_UP,
                 element: <SignupPage />,
+            },
+            // 로그인 사용자 전용 라우트
+            {
+                element: <RequireAuth />,
+                children: [
+                    {
+                        path: PAGE.MY_PAGE,
+                        element: <MyPage />,
+                    },
+                    {
+                        path: PAGE.CHANGE_PASSWORD,
+                        element: <ChangePassword />,
+                    },
+                    {
+                        path: PAGE.ADMIN_DOJANG,
+                        element: (
+                            <RequireRole allowedRoles={[ROLE.DOJANG_ADMIN, ROLE.SITE_ADMIN]}>
+                                <Outlet />
+                            </RequireRole>
+                        ),
+                        children: [
+                            {
+                                index: true,
+                                element: <DojangManage />,
+                            },
+                            {
+                                path: PAGE.ADMIN_DOJANG_REGISTER,
+                                element: <DojangCreate />,
+                            },
+                            {
+                                path: PAGE.ADMIN_DOJANG_EDIT(':dojangId'),
+                                element: <DojangUpdate />,
+                            },
+                        ]
+                    },
+                ],
             },
         ],
     },
@@ -68,12 +81,12 @@ const router = createBrowserRouter([
         element: <Test />,
     },
     // unauthorized 페이지
-    { path: '/unauthorized', element: <Unauthorized /> },
+    { path: PAGE.UNAUTHORIZED, element: <Unauthorized /> },
     // 404 페이지
-    { path: '/not-found', element: <NotFound /> },
+    { path: PAGE.NOT_FOUND, element: <NotFound /> },
     {
         path: '*',
-        element: <Navigate to="/not-found" replace />
+        element: <Navigate to={PAGE.NOT_FOUND} replace />
     },
 ]);
 

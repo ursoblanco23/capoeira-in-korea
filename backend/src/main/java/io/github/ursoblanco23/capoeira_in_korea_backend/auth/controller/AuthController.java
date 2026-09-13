@@ -1,17 +1,17 @@
 package io.github.ursoblanco23.capoeira_in_korea_backend.auth.controller;
 
 import io.github.ursoblanco23.capoeira_in_korea_backend.auth.dto.*;
+import io.github.ursoblanco23.capoeira_in_korea_backend.auth.security.UserPrincipal;
 import io.github.ursoblanco23.capoeira_in_korea_backend.auth.service.AuthService;
+import io.github.ursoblanco23.capoeira_in_korea_backend.auth.token.RefreshTokenCookieManager;
 import io.github.ursoblanco23.capoeira_in_korea_backend.common.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
 
 @Slf4j
 @RestController
@@ -19,11 +19,8 @@ import java.time.LocalDateTime;
 @RequestMapping("/auth")
 public class AuthController {
 
-    private static final String REFRESH_COOKIE_NAME = "refresh_token";
-    private static final String REFRESH_COOKIE_PATH = "/api/auth"; // context-path=/api 라면 OK
-    private static final String SAME_SITE = "Lax";
-
     private final AuthService authService;
+    private final RefreshTokenCookieManager refreshTokenCookieManager;
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest req) {
@@ -38,7 +35,7 @@ public class AuthController {
             HttpServletResponse response
     ) {
         IssuedTokens tokens = authService.login(req);
-        setRefreshCookie(response, tokens.getRefreshToken(), tokens.getRefreshExpiresAt());
+        refreshTokenCookieManager.setRefreshCookie(response, tokens.getRefreshToken(), tokens.getRefreshExpiresAt());
         return ResponseEntity.ok(ApiResponse.success(tokens.getAccessToken()));
     }
 
@@ -48,44 +45,29 @@ public class AuthController {
             HttpServletResponse response
     ) {
         IssuedTokens tokens = authService.refresh(refreshToken);
-        setRefreshCookie(response, tokens.getRefreshToken(), tokens.getRefreshExpiresAt());
+        refreshTokenCookieManager.setRefreshCookie(response, tokens.getRefreshToken(), tokens.getRefreshExpiresAt());
         return ResponseEntity.ok(ApiResponse.success(tokens.getAccessToken()));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
+            @CookieValue(name = RefreshTokenCookieManager.REFRESH_COOKIE_NAME, required = false) String refreshToken,
             HttpServletResponse response
     ) {
         authService.logout(refreshToken);
-        clearRefreshCookie(response);
+        refreshTokenCookieManager.clearRefreshCookie(response);
         return ResponseEntity.noContent().build();
     }
 
-    private void setRefreshCookie(HttpServletResponse response, String refreshToken, LocalDateTime refreshExpiresAt) {
-        long maxAgeSeconds = Duration.between(LocalDateTime.now(), refreshExpiresAt).getSeconds();
-        if (maxAgeSeconds < 0) maxAgeSeconds = 0; // 만약 시간이 역전되면 방어
-
-        ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
-                .httpOnly(true)
-                .secure(true) // 현재 상황에서 프로필 분기 안 하겠다 = HTTPS 환경 전제
-                .path(REFRESH_COOKIE_PATH)
-                .sameSite(SAME_SITE)
-                .maxAge(maxAgeSeconds)
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    @PatchMapping("/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody ChangePasswordRequest request,
+            HttpServletResponse response
+    ) {
+        authService.changePassword(principal.getUserId(), request);
+        refreshTokenCookieManager.clearRefreshCookie(response);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
-    private void clearRefreshCookie(HttpServletResponse response) {
-        ResponseCookie delete = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
-                .httpOnly(true)
-                .secure(true)
-                .path(REFRESH_COOKIE_PATH)
-                .sameSite(SAME_SITE)
-                .maxAge(0)
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
-    }
 }

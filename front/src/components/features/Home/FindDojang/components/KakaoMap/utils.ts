@@ -66,7 +66,7 @@
 //                               <div class="close">X</div>
 //                             </div>
 //                             <div class="custom-body">
-//                               <div class="roadAddress">${dojang.roadAddress}</div>
+//                               <div class="roadAddress">${dojang.address.roadAddress}</div>
 //                               <div class="phone">${dojang.phone}</div>
 //                               <nav>
 //                                 <a class="dojang-detail-link text-primary font-medium hover:underline cursor-pointer">
@@ -268,6 +268,7 @@ import type { NavigateFunction } from "react-router-dom";
 import { bindNavigateEventToTarget } from "@/utils/event";
 import { PAGE } from "@/constants/routes";
 import type { RefObject } from "react";
+import { formatPhoneForDisplay } from "@/utils";
 
 /**
  * 마커이미지의 주소와, 크기, 옵션으로 마커 이미지를 생성하여 반환합니다.
@@ -334,8 +335,8 @@ function createDojangInfoOverlay(dojang: Dojang, position: kakao.maps.LatLng): k
           <div class="close">X</div>
         </div>
         <div class="custom-body">
-          <div class="roadAddress">${dojang.roadAddress}</div>
-          <div class="phone">${dojang.phone}</div>
+          <div class="roadAddress">${dojang.address.roadAddress}</div>
+          <div class="phone">${formatPhoneForDisplay(dojang.phone, "international")}</div>
           <nav>
             <a class="dojang-detail-link text-primary font-medium hover:underline cursor-pointer">
               상세보기

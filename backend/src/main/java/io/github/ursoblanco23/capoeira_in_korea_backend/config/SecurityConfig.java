@@ -53,8 +53,9 @@ public class SecurityConfig { // 인증/인가 관련
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // OPTIONS 메서드로 요청되는 모든 url은 허용한다는 의미
                         .requestMatchers(HttpMethod.GET,"/dojangs/**", "/upload/**").permitAll() // GET 메서드로 요청되는 모든 url중 왼쪽에 설정한 애들만 허용
-                        .requestMatchers("/auth/**").permitAll() // 모든 메서드의 해당 url은 허용
+                        .requestMatchers(HttpMethod.PATCH, "/auth/password").authenticated()
                         .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
+                        .requestMatchers("/auth/**").permitAll()
 //                        .requestMatchers("/admin/**").hasRole("ADMIN") // TODO: 나중에 정확한 url과 해당 url에 맞는 권한명으로 변경 필요
                         .anyRequest().authenticated() //나머지 요청 url은 인증이 필요하다.
                 )

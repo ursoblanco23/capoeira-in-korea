@@ -2,7 +2,7 @@ package io.github.ursoblanco23.capoeira_in_korea_backend.auth.repository;
 
 import io.github.ursoblanco23.capoeira_in_korea_backend.auth.entity.UserRefreshToken;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 import jakarta.persistence.LockModeType;
@@ -28,7 +28,7 @@ public interface UserRefreshTokenRepository extends JpaRepository<UserRefreshTok
     """)
     Optional<UserRefreshToken> findActiveByHashForUpdate(
             @Param("hash") String hash,
-            @Param("now") LocalDateTime now
+            @Param("now") Instant now
     );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -38,7 +38,7 @@ public interface UserRefreshTokenRepository extends JpaRepository<UserRefreshTok
         where t.user.id = :userId
           and t.revokedAt is null
     """)
-    int revokeAllActiveByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
+    int revokeAllActiveByUserId(@Param("userId") Long userId, @Param("now") Instant now);
 
     void deleteAllByUser_Id(Long userId);
 }

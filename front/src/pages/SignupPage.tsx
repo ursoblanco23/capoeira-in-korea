@@ -1,14 +1,22 @@
 // src/pages/SignupPage.tsx
-import React, { useMemo, useState } from "react";
-import {authService} from "@/services/api/services/authService.ts";
+import React, { useState } from "react";
+import {authService} from "../services/api/auth/service/authService.ts";
 import type {ApiResponse} from "@/services/api/types/apiResponse.ts";
 import {extractErrorMessage} from "@/utils/error.ts";
 import {normalizePhone} from "@/utils";
 import type { SignupResponse } from "@/services/api/types/authApiTypes";
 import type { SignupForm } from "@/services/api/user/types/SignupForm.ts";
 import type {Gender} from "@/services/api/user/types/Gender.ts";
+import {PasswordField} from "@/components/auth/PasswordField.tsx";
+import {PasswordStrengthMeter} from "@/components/auth/PasswordStrengthMeter.tsx";
+import {openPostcodeSearch} from "@/utils/postcode.ts";
+import {toast} from "react-toastify";
+import {useLocation, useNavigate} from "react-router-dom";
+import type {AddressDto} from "@/services/api/types/AddressDto.ts";
+import {isAddressComplete, isAddressEmpty} from "@/services/api/adapters/addressAdapter.ts";
 
-type FieldErrors = Partial<Record<keyof SignupForm, string>>;
+type SignupField = Exclude<keyof SignupForm, "address"> | keyof AddressDto;
+type FieldErrors = Partial<Record<SignupField, string>>;
 
 const initialForm: SignupForm = {
     loginId: "",
@@ -22,12 +30,16 @@ const initialForm: SignupForm = {
     birthDate: "",
     gender: "U",
 
-    zipCode: "",
-    roadAddress: "",
-    detailAddress: "",
-    sidoName: "",
-    sigunguName: "",
-    eupmyeondongName: "",
+    address: {
+        zipCode: "",
+        roadAddress: "",
+        detailAddress: "",
+        sidoName: "",
+        sigunguName: "",
+        eupmyeondongName: "",
+    },
+
+    phoneRegionCode: 'KR',
 };
 
 function isEmail(v: string) {
@@ -35,33 +47,45 @@ function isEmail(v: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
-
-
 export default function SignupPage() {
     const [form, setForm] = useState<SignupForm>(initialForm);
     const [errors, setErrors] = useState<FieldErrors>({});
     const [submitting, setSubmitting] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
-    const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [showPw, setShowPw] = useState(false);
     const [showPw2, setShowPw2] = useState(false);
-
-    const pwStrength = useMemo(() => {
-        const p = form.password;
-        const hasLen = p.length >= 8;
-        const hasNum = /\d/.test(p);
-        const hasAlpha = /[A-Za-z]/.test(p);
-        const hasSpecial = /[^A-Za-z0-9]/.test(p);
-        const score = [hasLen, hasNum, hasAlpha, hasSpecial].filter(Boolean).length;
-        return { score, hasLen, hasNum, hasAlpha, hasSpecial };
-    }, [form.password]);
+    const location = useLocation();
+    const navigate = useNavigate();
 
     function setField<K extends keyof SignupForm>(key: K, value: SignupForm[K]) {
         setForm((prev) => ({ ...prev, [key]: value }));
         setErrors((prev) => ({ ...prev, [key]: undefined }));
         setServerError(null);
-        setSuccessMsg(null);
     }
+
+    function setAddressField<K extends keyof AddressDto>(key: K, value: AddressDto[K]) {
+        setForm((prev) => ({
+            ...prev,
+            address: {
+                ...prev.address,
+                [key]: value,
+            },
+        }));
+        setErrors((prev) => ({ ...prev, [key]: undefined }));
+        setServerError(null);
+    }
+
+    const handleZipCodeSearch = () => {
+        openPostcodeSearch((address) => {
+            setForm((prev) => ({
+                ...prev,
+                address: {
+                    ...prev.address,
+                    ...address,
+                },
+            }));
+        });
+    };
 
     function validate(): FieldErrors {
         const e: FieldErrors = {};
@@ -71,10 +95,11 @@ export default function SignupPage() {
         else if (form.loginId.length < 4) e.loginId = "아이디는 4자 이상을 권장해요.";
 
         if (!form.nickname.trim()) e.nickname = "닉네임을 입력해주세요.";
-        else if (form.nickname.length < 2) e.nickname = "닉네임은 2자 이상을 권장해요.";
+        else if (form.nickname.length < 2 && form.nickname.length < 21) e.nickname = "닉네임은 2자 이상 20자 이하로 입력해주세요.";
 
         if (!form.password) e.password = "비밀번호를 입력해주세요.";
-        else if (form.password.length < 8) e.password = "비밀번호는 8자 이상이어야 해요.";
+        else if (form.password.length < 12) e.password = "비밀번호는 12자 이상이어야 해요.";
+        else if (form.password.length > 64) e.password = "비밀번호는 64자 이하이어야 해요.";
 
         if (!form.passwordConfirm) e.passwordConfirm = "비밀번호 확인을 입력해주세요.";
         else if (form.passwordConfirm !== form.password)
@@ -92,6 +117,15 @@ export default function SignupPage() {
             e.birthDate = "생년월일은 YYYY-MM-DD 형식이에요.";
         }
 
+        if (!isAddressEmpty(form.address) && !isAddressComplete(form.address)) {
+            if (!form.address.zipCode.trim()) e.zipCode = "우편번호를 입력해주세요.";
+            if (!form.address.roadAddress.trim()) e.roadAddress = "도로명 주소를 입력해주세요.";
+            if (!form.address.detailAddress.trim()) e.detailAddress = "상세 주소를 입력해주세요.";
+            if (!form.address.sidoName.trim()) e.sidoName = "시/도를 입력해주세요.";
+            if (!form.address.sigunguName.trim()) e.sigunguName = "시/군/구를 입력해주세요.";
+            if (!form.address.eupmyeondongName.trim()) e.eupmyeondongName = "읍/면/동을 입력해주세요.";
+        }
+
         return e;
     }
 
@@ -101,12 +135,12 @@ export default function SignupPage() {
         const nextErrors = validate();
         if (Object.values(nextErrors).some(Boolean)) {
             setErrors(nextErrors);
+            toast.error("입력 내용을 다시 확인해 주세요.");
             return;
         }
 
         setSubmitting(true);
         setServerError(null);
-        setSuccessMsg(null);
 
         try {
             // 백엔드 DTO에 맞춰 payload를 구성해야 함.
@@ -123,12 +157,8 @@ export default function SignupPage() {
                 birthDate: form.birthDate,
                 gender: form.gender,
 
-                zipCode: form.zipCode.trim(),
-                roadAddress: form.roadAddress.trim(),
-                detailAddress: form.detailAddress.trim(),
-                sidoName: form.sidoName.trim(),
-                sigunguName: form.sigunguName.trim(),
-                eupmyeondongName: form.eupmyeondongName.trim(),
+                address: form.address,
+                phoneRegionCode: form.phoneRegionCode,
             };
 
             // console.log("signup payload:", payload);
@@ -143,22 +173,22 @@ export default function SignupPage() {
                 throw new Error(message || "회원가입에 실패했어요.");
             }
 
-            const data = res.data as SignupResponse;
-            console.log("signup response:", data);
-
-            // TODO: 토큰 저장 방식 결정
-            // - accessToken: 메모리/상태관리(zustand) + 필요시 localStorage(보안 tradeoff)
-            // - refreshToken: HttpOnly Cookie 추천 or 지금처럼 응답 바디로 주는 방식이면 저장 고민 필요
-            // localStorage.setItem("accessToken", data.accessToken);
-
-            setSuccessMsg("회원가입이 완료되었어요! 🎉");
-            // 필요하면 라우팅
-            // navigate("/");
-            // 또는 자동 로그인 상태로 전환 처리
-
             setForm(initialForm);
+            toast.success(`${form.nickname}님, 가입을 환영합니다! 🎉`);
+
+            //TODO: 자동로그인 처리
+            await authService.login({ id: form.loginId.trim(), password: form.password });
+
+            const from = location.state?.from;
+            const previousUrl = from ? from.pathname + from.search : "/";
+            navigate(previousUrl, {replace: true});
+
         } catch (err) {
-            setServerError(extractErrorMessage(err));
+
+            const errMsg = extractErrorMessage(err);
+            setServerError(errMsg);
+            toast.error(errMsg ?? "로그인에 실패했습니다. 다시 시도해주세요.");
+
         } finally {
             setSubmitting(false);
         }
@@ -207,7 +237,7 @@ export default function SignupPage() {
                                 <div className="rounded-xl bg-slate-50 p-4">
                                     <div className="font-semibold text-slate-900">비밀번호</div>
                                     <div className="mt-1 text-slate-600">
-                                        8자 이상 + 숫자/문자/특수문자 조합 권장
+                                        12자 이상 + 숫자/문자/특수문자 조합 권장
                                     </div>
                                 </div>
                                 <div className="rounded-xl bg-slate-50 p-4">
@@ -226,11 +256,6 @@ export default function SignupPage() {
                             {serverError && (
                                 <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                                     {serverError}
-                                </div>
-                            )}
-                            {successMsg && (
-                                <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                                    {successMsg}
                                 </div>
                             )}
 
@@ -292,7 +317,7 @@ export default function SignupPage() {
                                             />
                                         </div>
 
-                                        <PasswordStrengthMeter strength={pwStrength} />
+                                        <PasswordStrengthMeter password={form.password} />
                                     </div>
                                 </div>
 
@@ -361,10 +386,7 @@ export default function SignupPage() {
                                         <button
                                             type="button"
                                             className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
-                                            onClick={() => {
-                                                // TODO: 다음/카카오 우편번호 연동 지점
-                                                alert("TODO: 우편번호 검색 연동(다음/카카오)");
-                                            }}
+                                            onClick={handleZipCodeSearch}
                                         >
                                             우편번호 검색
                                         </button>
@@ -374,23 +396,23 @@ export default function SignupPage() {
                                         <Field
                                             label="우편번호"
                                             placeholder="예) 06236"
-                                            value={form.zipCode}
-                                            onChange={(v) => setField("zipCode", v)}
+                                            value={form.address.zipCode}
+                                            onChange={(v) => setAddressField("zipCode", v)}
                                             error={errors.zipCode}
                                         />
                                         <Field
                                             label="도로명 주소"
                                             placeholder="예) 서울 강남구 테헤란로 123"
-                                            value={form.roadAddress}
-                                            onChange={(v) => setField("roadAddress", v)}
+                                            value={form.address.roadAddress}
+                                            onChange={(v) => setAddressField("roadAddress", v)}
                                             error={errors.roadAddress}
                                         />
 
                                         <Field
                                             label="상세 주소"
                                             placeholder="예) 101동 202호"
-                                            value={form.detailAddress}
-                                            onChange={(v) => setField("detailAddress", v)}
+                                            value={form.address.detailAddress}
+                                            onChange={(v) => setAddressField("detailAddress", v)}
                                             error={errors.detailAddress}
                                             className="sm:col-span-2"
                                         />
@@ -398,22 +420,22 @@ export default function SignupPage() {
                                         <Field
                                             label="시/도"
                                             placeholder="예) 서울"
-                                            value={form.sidoName}
-                                            onChange={(v) => setField("sidoName", v)}
+                                            value={form.address.sidoName}
+                                            onChange={(v) => setAddressField("sidoName", v)}
                                             error={errors.sidoName}
                                         />
                                         <Field
                                             label="시/군/구"
                                             placeholder="예) 강남구"
-                                            value={form.sigunguName}
-                                            onChange={(v) => setField("sigunguName", v)}
+                                            value={form.address.sigunguName}
+                                            onChange={(v) => setAddressField("sigunguName", v)}
                                             error={errors.sigunguName}
                                         />
                                         <Field
                                             label="읍/면/동"
                                             placeholder="예) 역삼동"
-                                            value={form.eupmyeondongName}
-                                            onChange={(v) => setField("eupmyeondongName", v)}
+                                            value={form.address.eupmyeondongName}
+                                            onChange={(v) => setAddressField("eupmyeondongName", v)}
                                             error={errors.eupmyeondongName}
                                             className="sm:col-span-2"
                                         />
@@ -489,100 +511,7 @@ function Field(props: {
     );
 }
 
-function PasswordField(props: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    error?: string;
-    autoComplete?: string;
-    show: boolean;
-    onToggle: () => void;
-}) {
-    const { label, value, onChange, error, autoComplete, show, onToggle } = props;
 
-    return (
-        <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-800">
-                {label}
-            </label>
-            <div
-                className={[
-                    "flex items-center rounded-xl border bg-white shadow-sm",
-                    error ? "border-red-300" : "border-slate-200",
-                    "focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100",
-                    error ? "focus-within:border-red-400 focus-within:ring-red-100" : "",
-                ].join(" ")}
-            >
-                <input
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    type={show ? "text" : "password"}
-                    autoComplete={autoComplete}
-                    className="w-full rounded-xl bg-transparent px-3 py-2.5 text-sm text-slate-900 outline-none"
-                />
-                <button
-                    type="button"
-                    onClick={onToggle}
-                    className="mx-2 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                >
-                    {show ? "숨김" : "보기"}
-                </button>
-            </div>
-            {error && <p className="mt-1 text-xs font-medium text-red-600">{error}</p>}
-        </div>
-    );
-}
-
-function PasswordStrengthMeter(props: {
-    strength: {
-        score: number;
-        hasLen: boolean;
-        hasNum: boolean;
-        hasAlpha: boolean;
-        hasSpecial: boolean;
-    };
-}) {
-    const { strength } = props;
-    const pct = (strength.score / 4) * 100;
-
-    return (
-        <div className="sm:col-span-2">
-            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-800">비밀번호 강도</p>
-                    <p className="text-xs text-slate-600">
-                        {strength.score <= 1 && "약함"}
-                        {strength.score === 2 && "보통"}
-                        {strength.score === 3 && "좋음"}
-                        {strength.score === 4 && "강함"}
-                    </p>
-                </div>
-
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                    <div
-                        className="h-full rounded-full bg-blue-600 transition-all"
-                        style={{ width: `${pct}%` }}
-                    />
-                </div>
-
-                <ul className="mt-3 grid gap-1 text-xs text-slate-600 sm:grid-cols-2">
-                    <li className={strength.hasLen ? "text-emerald-700" : ""}>
-                        • 8자 이상
-                    </li>
-                    <li className={strength.hasNum ? "text-emerald-700" : ""}>
-                        • 숫자 포함
-                    </li>
-                    <li className={strength.hasAlpha ? "text-emerald-700" : ""}>
-                        • 영문 포함
-                    </li>
-                    <li className={strength.hasSpecial ? "text-emerald-700" : ""}>
-                        • 특수문자 포함
-                    </li>
-                </ul>
-            </div>
-        </div>
-    );
-}
 
 function SelectField<T extends string>(props: {
     label: string;

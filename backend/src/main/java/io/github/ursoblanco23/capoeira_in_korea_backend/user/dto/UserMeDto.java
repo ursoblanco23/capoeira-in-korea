@@ -6,6 +6,7 @@ import io.github.ursoblanco23.capoeira_in_korea_backend.user.constants.UserStatu
 import io.github.ursoblanco23.capoeira_in_korea_backend.user.entity.User;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,9 +30,9 @@ public class UserMeDto {
     private UserStatus status;
     private boolean emailVerified;
     private boolean phoneVerified;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private LocalDateTime lastLoginAt;
+    private Instant createdAt;
+    private Instant updatedAt;
+    private Instant lastLoginAt;
     private List<UserRoleDto> roles;
 
     @Setter

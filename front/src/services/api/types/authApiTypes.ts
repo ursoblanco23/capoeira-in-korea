@@ -1,3 +1,6 @@
+import type {AddressDto} from "@/services/api/types/AddressDto.ts";
+import type {PhoneRegionCode} from "@/constants/phoneRegions.ts";
+
 export interface SignupRequestDto {
     loginId: string;
     email?: string;
@@ -5,16 +8,11 @@ export interface SignupRequestDto {
     nickname: string;
 
     realName?: string;
-    phone?: string;
+    phone?: string | null;
+    phoneRegionCode: PhoneRegionCode;
     birthDate?: string;
     gender?: "M" | "F" | "U";
-
-    zipCode?: string;
-    roadAddress?: string;
-    detailAddress?: string;
-    sidoName?: string;
-    sigunguName?: string;
-    eupmyeondongName?: string;
+    address: AddressDto | null;
 }
 
 export interface SignupResponse {

@@ -16,6 +16,12 @@ import java.nio.file.Paths;
 @Configuration
 public class WebConfig implements WebMvcConfigurer { // MVC, CORS, Resource 관련 설정
 
+    @Value("${storage.local.base-path}")
+    private String storageBasePath;
+
+    @Value("${file.upload.base-dir}")
+    private String uploadBaseDir;
+
 // spring security config 에서 cors 설정 추가했음.
 //    @Override
 //    public void addCorsMappings(CorsRegistry registry) {
@@ -28,7 +34,14 @@ public class WebConfig implements WebMvcConfigurer { // MVC, CORS, Resource 관�
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String location = "file:///C:/Users/taemin/workSpace/my-project/capoeira-in-korea-backend/upload/";
+        Path storageRoot = Paths.get(storageBasePath).toAbsolutePath().normalize();
+        String relativeUploadPath = uploadBaseDir.replaceFirst("^[\\\\/]+", "");
+        Path uploadRoot = storageRoot.resolve(relativeUploadPath).normalize();
+        String location = uploadRoot.toUri().toString();
+
+        if (!location.endsWith("/")) {
+            location += "/";
+        }
 
         registry.addResourceHandler("/upload/**")
                 .addResourceLocations(location)

@@ -19,13 +19,13 @@ export const dojangApi = {
         });
     },
 
-    // /**
-    //  * 특정 도장 상세 조회
-    //  * @param id 도장 ID
-    //  */
-    // getDojangById: async (id: number): Promise<ApiResponse<DojangDetail>> => {
-    //     return api.get<DojangDetail>(ENDPOINTS.DOJANG.BY_ID(id));
-    // },
+    /**
+     * 특정 도장 상세 조회
+     * @param id 도장 ID
+     */
+    getDojangById: async (id: number): Promise<ApiResponse<Dojang>> => {
+        return api.get<Dojang>(ENDPOINTS.DOJANG.DETAIL(id));
+    },
     //
     // /**
     //  * 근처 도장 조회
@@ -75,10 +75,10 @@ export const dojangApi = {
      * @param data 수정할 데이터
      */
     updateDojang: async (
-        dojangId: number,
         data: FormData,
+        dojangId: number,
     ): Promise<ApiResponse<number>> => {
-        return api.patch<number>(ENDPOINTS.DOJANG.UPDATE(dojangId), data, {
+        return api.put<number>(ENDPOINTS.DOJANG.UPDATE(dojangId), data, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             }

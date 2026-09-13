@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ImageMetadata {
+public class ImageMetadata implements MediaMetadata {
     private Integer width;
     private Integer height;
 }

@@ -43,7 +43,7 @@ public class MediaFile {
     private Integer height;
 
     @Column(name = "duration")
-    private Integer duration;
+    private Integer durationSeconds;
 
     // 대체 텍스트
     @Column(name = "alt_text", columnDefinition = "TEXT")

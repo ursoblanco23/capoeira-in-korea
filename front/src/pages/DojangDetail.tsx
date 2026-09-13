@@ -1,33 +1,23 @@
-/* 도장 페이지 */
-import {Link, useNavigate, useParams} from "react-router-dom";
-import {useFindDojangById} from "@/stores/dojangStore.ts";
-import {useEffect, useRef, useState} from "react";
-import {type Dojang} from '@/types/dojang';
+import {Link, useParams} from "react-router-dom";
+import {useRef} from "react";
 import DojangMediaGallery from "@/components/features/Dojang/DojangMediaGallery/DojangMediaGallery.tsx";
 import {PAGE} from "@/constants/routes.ts";
+import {formatPhoneForDisplay} from "@/utils";
+import {useDojangQuery} from "@/hooks/queries/useDojangsQuery.ts";
 
+/* 도장 페이지 */
 const DojangDetail = () => {
-    const {dojangId} = useParams<{ id: string }>();
-    const navigate = useNavigate();
-    const findDojangById = useFindDojangById();
-    const [dojang, setDojang] = useState<Dojang | null>(null);
+    const {dojangId} = useParams<{ dojangId: string }>();
+    const parsedDojangId = Number(dojangId);
+    const validDojangId =
+        Number.isSafeInteger(parsedDojangId) && parsedDojangId > 0
+            ? parsedDojangId
+            : undefined;
+    const {data: dojang, isPending, isError} =
+        useDojangQuery(validDojangId);
     const likeBtnRef = useRef<HTMLElement | null>(null);
 
 
-    useEffect(() => {
-        if (!dojangId) {
-            navigate('/not-found');
-        } else {
-            const res = findDojangById(parseInt(dojangId));
-            if (res) {
-                console.log('도장 정보:', res);
-                setDojang((res));
-            } else {
-                alert('해당 도장 정보가 없습니다. 홈 화면으로 이동됩니다.');
-                navigate('/');
-            }
-        }
-    }, [])
 
     const handleLikeBtnClick = () => {
         const likeBtn = likeBtnRef.current;
@@ -45,7 +35,19 @@ const DojangDetail = () => {
 
     };
 
+    if (validDojangId === undefined) {
+        return <div>잘못된 도장 ID입니다.</div>;
+    }
+
+    if (isPending) {
+        return <div>도장 정보를 불러오는 중입니다.</div>;
+    }
+
+    if (isError || !dojang) {
+        return <div>도장 정보를 불러오지 못했습니다.</div>;
+    }
     return (
+
         <main className="container mx-auto px-4 py-8">
             <div className="mb-6">
                 {/* TODO: 도장 목록 페이지 url 생기면 바꿔서 적어놓기 */}
@@ -89,7 +91,9 @@ const DojangDetail = () => {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500">연락처</p>
-                                        <p className="text-gray-900 font-medium">{dojang?.phone}</p>
+                                        <p className="text-gray-900 font-medium">
+                                            {formatPhoneForDisplay(dojang?.phone, "international")}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="flex items-start">
@@ -98,8 +102,8 @@ const DojangDetail = () => {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500">주소</p>
-                                        <p className="text-gray-900 font-medium">{dojang?.roadAddress}</p>
-                                        <p className="text-gray-900 font-medium">{dojang?.detailAddress}</p>
+                                        <p className="text-gray-900 font-medium">{dojang?.address.roadAddress}</p>
+                                        <p className="text-gray-900 font-medium">{dojang?.address.detailAddress}</p>
                                     </div>
                                 </div>
                             </div>
@@ -110,7 +114,7 @@ const DojangDetail = () => {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500">수강료 범위</p>
-                                        <p className="text-gray-900 font-medium">{dojang?.priceRange}</p>
+                                        <p className="text-gray-900 font-medium">{dojang?.priceInfo}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start">
@@ -119,7 +123,7 @@ const DojangDetail = () => {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500">등록일</p>
-                                        <p className="text-gray-900 font-medium">{dojang?.createdAt}</p>
+                                        <p className="text-gray-900 font-medium">{dojang?.createdAt.split('T')[0]}</p>
                                     </div>
                                 </div>
                             </div>

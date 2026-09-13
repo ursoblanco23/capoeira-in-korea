@@ -1,4 +1,6 @@
 import type {Gender} from "@/services/api/user/types/Gender.ts";
+import type {AddressDto} from "@/services/api/types/AddressDto.ts";
+import type {PhoneRegionCode} from "@/constants/phoneRegions.ts";
 
 export interface SignupForm {
     loginId: string;
@@ -12,12 +14,7 @@ export interface SignupForm {
     birthDate: string; // YYYY-MM-DD
     gender: Gender;
 
-    //TODO: 후에 UserAddressDto로 묶어서 관리할 것. -> 서버 쪽도 UserAddressDto로 묶어서 받도록 변경 필요.
-    //  address: UserAddressDto;
-    zipCode: string;
-    roadAddress: string;
-    detailAddress: string;
-    sidoName: string;
-    sigunguName: string;
-    eupmyeondongName: string;
+    address: AddressDto;
+
+    phoneRegionCode: PhoneRegionCode;
 };

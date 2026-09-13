@@ -1,22 +1,25 @@
 import {useNavigate} from "react-router-dom";
 import {dojangService} from "@/services/api/services/dojangService.ts";
 import {extractErrorMessage} from "@/utils/error.ts";
-import {useMutation} from "@tanstack/react-query";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {toast} from "react-toastify";
-import {useDojangStore} from "@/stores/dojangStore.ts";
 import DojangForm from "@/components/features/Dojang/DojangForm.tsx";
+import {dojangQueryKeys} from "@/hooks/queries/useDojangsQuery.ts";
 
 
 const DojangCreate = () => {
     const navigate = useNavigate();
-    const fetchDojangs = useDojangStore((state) => state.fetchDojangs);
+    const queryClient = useQueryClient();
     
     const mutation = useMutation({
         mutationFn: (formData: FormData) => dojangService.createDojang(formData),
-        onSuccess: ({dojangId}) => {
+        onSuccess: async ({dojangId}) => {
             if (dojangId) {
                 toast.success('도장이 성공적으로 등록되었습니다!');
-                fetchDojangs(true);
+                await queryClient.invalidateQueries({
+                    queryKey: dojangQueryKeys.lists(),
+                });
+
                 navigate(-1);
             }
         },

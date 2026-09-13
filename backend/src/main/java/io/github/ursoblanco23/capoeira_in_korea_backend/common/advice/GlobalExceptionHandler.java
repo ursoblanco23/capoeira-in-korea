@@ -2,13 +2,18 @@ package io.github.ursoblanco23.capoeira_in_korea_backend.common.advice;
 
 import io.github.ursoblanco23.capoeira_in_korea_backend.common.dto.ApiResponse;
 import io.github.ursoblanco23.capoeira_in_korea_backend.common.dto.FieldErrorDetail;
+import io.github.ursoblanco23.capoeira_in_korea_backend.exception.DatabaseConstraintErrorResolver;
 import io.github.ursoblanco23.capoeira_in_korea_backend.exception.BusinessException;
 import io.github.ursoblanco23.capoeira_in_korea_backend.exception.constants.ErrorCode;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -23,7 +28,41 @@ import java.util.List;
 
 @RestControllerAdvice
 @Slf4j
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final DatabaseConstraintErrorResolver databaseConstraintErrorResolver;
+
+    /**
+     * request body와 서버 DTO 바인딩에서 에러 발생 시 필드별 에러코드 리스트 생성 반환
+     * @param bindingResult
+     * @return
+     */
+    private List<String> extractValidationLogDetails(
+            BindingResult bindingResult
+    ) {
+        return bindingResult.getFieldErrors()
+                .stream()
+                .map(fieldError ->
+                        fieldError.getField()
+                                + ":"
+                                + fieldError.getCode()
+                )
+                .distinct()
+                .toList();
+    }
+
+    private List<FieldErrorDetail> extractFieldErrors(
+            BindingResult bindingResult
+    ) {
+        return bindingResult.getFieldErrors()
+                .stream()
+                .map(fieldError -> new FieldErrorDetail(
+                        fieldError.getField(),
+                        fieldError.getDefaultMessage()
+                ))
+                .toList();
+    }
 
     /**
      * >> 에러 처리 핸들러 순서도 주의하기!
@@ -34,7 +73,7 @@ public class GlobalExceptionHandler {
      * validation 관련 예외들
      * MethodArgumentTypeMismatchException 같은 요청 오류
      * 맨 마지막 Exception
-    */
+     */
 
     /**
      * 비즈니스 예외
@@ -93,25 +132,25 @@ public class GlobalExceptionHandler {
      * => COMMON_VALIDATION_ERROR 사용
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        log.warn("MethodArgumentNotValidException: {}", ex.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request
+    ) {
+        List<FieldErrorDetail> fieldErrors = extractFieldErrors(ex.getBindingResult());
 
-        List<FieldErrorDetail> fieldErrors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(fieldError -> new FieldErrorDetail(
-                        fieldError.getField(),
-                        /*민감한 정보는 마스킹해야할 수도 있음 그때는 아래 코드처럼 처리하면 됌
-                        * Object rejectedValue = "password".equals(fieldError.getField()) ? null : fieldError.getRejectedValue();
-                        * */
-                        fieldError.getRejectedValue(),
-                        fieldError.getDefaultMessage()
-                ))
-                .toList();
+        log.warn(
+                "Request validation failed: method={}, uri={}, errors={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                extractValidationLogDetails(ex.getBindingResult())
+        );
 
         return ResponseEntity
                 .status(ErrorCode.COMMON_VALIDATION_ERROR.getStatus())
-                .body(ApiResponse.error(ErrorCode.COMMON_VALIDATION_ERROR, fieldErrors));
+                .body(ApiResponse.error(
+                        ErrorCode.COMMON_VALIDATION_ERROR,
+                        fieldErrors
+                ));
     }
 
     /**
@@ -122,21 +161,19 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BindException.class)
     public ResponseEntity<ApiResponse<Void>> handleBindException(BindException ex) {
-        log.warn("BindException: {}", ex.getMessage());
+        log.warn(
+                "Request binding validation failed: fieldErrorCount={}",
+                ex.getBindingResult().getFieldErrorCount()
+        );
 
-        List<FieldErrorDetail> fieldErrors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(fieldError -> new FieldErrorDetail(
-                        fieldError.getField(),
-                        fieldError.getRejectedValue(),
-                        fieldError.getDefaultMessage()
-                ))
-                .toList();
+        List<FieldErrorDetail> fieldErrors = extractFieldErrors(ex.getBindingResult());
 
         return ResponseEntity
                 .status(ErrorCode.COMMON_VALIDATION_ERROR.getStatus())
-                .body(ApiResponse.error(ErrorCode.COMMON_VALIDATION_ERROR, fieldErrors));
+                .body(ApiResponse.error(
+                        ErrorCode.COMMON_VALIDATION_ERROR,
+                        fieldErrors
+                ));
     }
 
     /**
@@ -241,6 +278,37 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.MEDIA_FILE_SIZE_EXCEEDED.getStatus())
                 .body(ApiResponse.error(ErrorCode.MEDIA_FILE_SIZE_EXCEEDED));
+    }
+
+    /**
+     * DB 제약조건 위반
+     *
+     * 등록된 제약조건은 도메인 에러로 변환하고, 알 수 없는 무결성 위반은
+     * 내부 정보가 노출되지 않도록 공통 서버 오류로 응답한다.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex
+    ) {
+        return databaseConstraintErrorResolver.resolve(ex)
+                .map(errorCode -> {
+                    log.warn(
+                            "Database constraint violation: code={}, status={}",
+                            errorCode.getCode(),
+                            errorCode.getStatus()
+                    );
+
+                    return ResponseEntity
+                            .status(errorCode.getStatus())
+                            .body(ApiResponse.<Void>error(errorCode));
+                })
+                .orElseGet(() -> {
+                    log.error("Unhandled data integrity violation", ex);
+
+                    return ResponseEntity
+                            .status(ErrorCode.COMMON_INTERNAL_SERVER_ERROR.getStatus())
+                            .body(ApiResponse.error(ErrorCode.COMMON_INTERNAL_SERVER_ERROR));
+                });
     }
 
     /**

@@ -17,7 +17,7 @@ public class FieldErrorDetail {
      * 사용자가 입력한 값
      * 보안상 민감할 수 있는 값은 내려주지 않도록 주의
      */
-    private final Object rejectedValue;
+//    private final Object rejectedValue;
 
     /**
      * 검증 실패 메시지

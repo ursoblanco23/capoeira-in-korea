@@ -152,6 +152,18 @@ public enum ErrorCode {
             "인증이 필요합니다."
     ),
 
+    AUTH_CURRENT_PASSWORD_MISMATCH(
+            "AUTH-CURRENT-PASSWORD-MISMATCH-0018",
+            HttpStatus.BAD_REQUEST,
+            "현재 비밀번호가 일치하지 않습니다."
+    ),
+
+    AUTH_SAME_PASSWORD(
+            "AUTH-SAME-PASSWORD-0019",
+            HttpStatus.BAD_REQUEST,
+            "현재 사용 중인 비밀번호입니다. 새로운 비밀번호를 입력해 주세요."
+    ),
+
     // ========================================================================
     // USER (사용자)
     // ========================================================================
@@ -186,7 +198,6 @@ public enum ErrorCode {
             "비활성화되었거나 탈퇴한 계정입니다."
     ),
 
-
     // ========================================================================
     // DOJANG (도장)
     // ------------------------------------------------------------------------
@@ -203,6 +214,11 @@ public enum ErrorCode {
             "DOJANG-DUPLICATE-0002",
             HttpStatus.CONFLICT,
             "이미 등록된 도장입니다."
+    ),
+    DOJANG_ADDRESS_INCOMPLETE(
+            "DOJANG-ADDRESS-INCOMPLETE-0003",
+            HttpStatus.BAD_REQUEST,
+            "도장 주소의 필수 항목을 모두 입력해 주세요."
     ),
 
 

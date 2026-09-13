@@ -20,6 +20,11 @@ interface DojangState {
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5분
 
+
+/**
+ * @deprecated 도장 서버 상태는 TanStack Query로 이전 중입니다.
+ * 학습 참고용으로만 유지하며 신규 코드에서는 useDojangsQuery를 사용하세요.
+ */
 export const useDojangStore = create<DojangState>()(
     devtools(
         persist(

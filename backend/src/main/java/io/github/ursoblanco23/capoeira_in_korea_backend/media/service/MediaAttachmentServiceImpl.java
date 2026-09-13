@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -22,8 +24,17 @@ public class MediaAttachmentServiceImpl implements MediaAttachmentService {
 
     private final MediaAttachmentRepository mediaAttachmentRepository;
 
+    /**
+     * 싱글 media의 mediaFile Attachment의 연결을 교체 혹은 생성
+     *
+     * @param newMedia
+     * @param mediaType
+     * @param attachableId
+     * @param attachableType
+     * @return 기존에 mediaFile 존재 시 대체된 기존의 mediaFile entity
+     */
     @Override
-    public MediaFile replaceSingleAttachment(MediaFile newMedia, MediaFileType mediaType, Long attachableId, MediaAttachmentType attachableType) {
+    public MediaFile replaceSingleAttachment(MediaFile newMedia, MediaFileType mediaType, long attachableId, MediaAttachmentType attachableType) {
         Optional<MediaAttachment> attachment = findAttachment(attachableType, attachableId, mediaType);
 
         if (attachment.isPresent()) {
@@ -37,10 +48,7 @@ public class MediaAttachmentServiceImpl implements MediaAttachmentService {
     }
 
     @Override
-    public MediaAttachment createAttachment(MediaFile media, MediaFileType mediaType, Long attachableId, MediaAttachmentType attachableType) {
-
-        //TODO:  attachableId가 attachableType에 맞는 건지 검증 필요
-
+    public MediaAttachment createAttachment(MediaFile media, MediaFileType mediaType, long attachableId, MediaAttachmentType attachableType) {
         MediaAttachment mediaAttachment = MediaAttachment.builder()
                 .media(media)
                 .attachableType(attachableType)
@@ -52,13 +60,28 @@ public class MediaAttachmentServiceImpl implements MediaAttachmentService {
     }
 
     @Override
-    public MediaAttachment getAttachment(MediaAttachmentType attachableType, Long attachableId, MediaFileType mediaType) {
+    public MediaAttachment getAttachment(MediaAttachmentType attachableType, long attachableId, MediaFileType mediaType) {
         return findAttachment(attachableType, attachableId, mediaType).orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_ATTACHMENT_NOT_FOUND));
     }
 
     @Override
-    public Optional<MediaAttachment> findAttachment(MediaAttachmentType attachableType, Long attachableId, MediaFileType mediaType) {
+    public Optional<MediaAttachment> findAttachment(MediaAttachmentType attachableType, long attachableId, MediaFileType mediaType) {
         return mediaAttachmentRepository.findByAttachableTypeAndAttachableIdAndMediaType(attachableType, attachableId, mediaType);
+    }
+
+    @Override
+    public Optional<MediaAttachment> findActiveAttachment(MediaAttachmentType attachableType, long attachableId, MediaFileType mediaType) {
+        return mediaAttachmentRepository
+                .findByAttachableTypeAndAttachableIdAndMediaTypeAndMedia_IsActiveTrue(
+                        attachableType,
+                        attachableId,
+                        mediaType
+                );
+    }
+
+    @Override
+    public List<MediaAttachment> findAllActiveAttachments(MediaAttachmentType attachableType, Collection<Long> attachableIds, MediaFileType mediaType) {
+        return mediaAttachmentRepository.findAllActiveAttachments(attachableType, mediaType, attachableIds);
     }
 
 

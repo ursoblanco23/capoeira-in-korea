@@ -1,15 +1,12 @@
 package io.github.ursoblanco23.capoeira_in_korea_backend.auth.service;
 
-import io.github.ursoblanco23.capoeira_in_korea_backend.auth.dto.AccessTokenDto;
-import io.github.ursoblanco23.capoeira_in_korea_backend.auth.dto.IssuedTokens;
-import io.github.ursoblanco23.capoeira_in_korea_backend.auth.dto.LoginRequest;
-import io.github.ursoblanco23.capoeira_in_korea_backend.auth.dto.SignupRequest;
-import io.github.ursoblanco23.capoeira_in_korea_backend.auth.dto.SignupResponse;
+import io.github.ursoblanco23.capoeira_in_korea_backend.auth.dto.*;
 import io.github.ursoblanco23.capoeira_in_korea_backend.auth.entity.UserRefreshToken;
 import io.github.ursoblanco23.capoeira_in_korea_backend.auth.repository.UserRefreshTokenRepository;
 import io.github.ursoblanco23.capoeira_in_korea_backend.auth.token.JwtProvider;
 import io.github.ursoblanco23.capoeira_in_korea_backend.auth.token.RefreshTokenHasher;
 import io.github.ursoblanco23.capoeira_in_korea_backend.common.entity.Address;
+import io.github.ursoblanco23.capoeira_in_korea_backend.common.dto.AddressRequest;
 import io.github.ursoblanco23.capoeira_in_korea_backend.common.util.DateUtils;
 import io.github.ursoblanco23.capoeira_in_korea_backend.common.util.PhoneUtils;
 import io.github.ursoblanco23.capoeira_in_korea_backend.exception.BusinessException;
@@ -17,8 +14,11 @@ import io.github.ursoblanco23.capoeira_in_korea_backend.exception.constants.Erro
 import io.github.ursoblanco23.capoeira_in_korea_backend.user.constants.UserStatus;
 import io.github.ursoblanco23.capoeira_in_korea_backend.user.entity.User;
 import io.github.ursoblanco23.capoeira_in_korea_backend.user.repository.UserRepository;
+import io.github.ursoblanco23.capoeira_in_korea_backend.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.LocalDateTime;
+
+import java.time.Clock;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,23 +26,27 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import static io.github.ursoblanco23.capoeira_in_korea_backend.exception.constants.ErrorCode.AUTH_CURRENT_PASSWORD_MISMATCH;
+import static io.github.ursoblanco23.capoeira_in_korea_backend.exception.constants.ErrorCode.AUTH_SAME_PASSWORD;
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final UserRefreshTokenRepository userRefreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final UserService userService;
+    private final Clock clock;
 
     /**
      * 회원가입
-     *
      * 현재는 service 레벨에서 중복 체크 후 BusinessException 발생.
      * 추후 @Valid, 별도 validator, DB unique constraint와 함께 보강 가능.
      */
     @Override
-    @Transactional
     public SignupResponse signup(SignupRequest req) {
         validateSignupDuplicate(req);
 
@@ -52,17 +56,10 @@ public class AuthServiceImpl implements AuthService {
                 .passwordHash(passwordEncoder.encode(req.getPassword()))
                 .nickname(req.getNickname())
                 .realName(req.getRealName())
-                .phone(PhoneUtils.normalizeKoreanPhone(req.getPhone()))
+                .phone(normalizeSignupPhone(req))
                 .birthDate(DateUtils.parseDate(req.getBirthDate()))
                 .gender(req.getGender())
-                .address(Address.of(
-                        req.getZipCode()
-                        ,req.getRoadAddress()
-                        ,req.getDetailAddress()
-                        ,req.getSidoName()
-                        ,req.getSigunguName()
-                        ,req.getEupmyeondongName()
-                ))
+                .address(toAddress(req.getAddress()))
                 .status(UserStatus.ACTIVE)
                 .build();
 
@@ -75,8 +72,22 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
+    private String normalizeSignupPhone(SignupRequest request) {
+        try {
+            return PhoneUtils.normalizePhoneToE164(
+                    request.getPhone(),
+                    request.getPhoneRegionCode()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new BusinessException(
+                    ErrorCode.COMMON_VALIDATION_ERROR,
+                    "Invalid signup phone number or region code",
+                    exception
+            );
+        }
+    }
+
     @Override
-    @Transactional
     public IssuedTokens login(LoginRequest req) {
         User user = userRepository.findByLoginId(req.getId())
                 // 보안상 "아이디 없음" / "비밀번호 틀림"을 구분하지 않는 것이 일반적
@@ -88,17 +99,17 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.AUTH_LOGIN_FAILED);
         }
 
-        user.touchLastLogin();
 
         // 현재 정책: 로그인 시 기존 refresh 토큰 전부 폐기 (싱글 디바이스 로그인 정책)
         // TODO: 추후에 멀티 디바이스 로그인 정책으로 확장 예정
-        userRefreshTokenRepository.revokeAllActiveByUserId(user.getId(), LocalDateTime.now());
+        Instant now = clock.instant();
+        user.touchLastLogin(now);
+        userRefreshTokenRepository.revokeAllActiveByUserId(user.getId(), now);
 
         return issueTokens(user);
     }
 
     @Override
-    @Transactional
     public IssuedTokens refresh(java.lang.String rawRefresh) {
         if (rawRefresh == null || rawRefresh.isBlank()) {
             throw new BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_MISSING);
@@ -108,18 +119,37 @@ public class AuthServiceImpl implements AuthService {
         Long userIdFromRefreshToken = jwtProvider.getUserIdFromRefreshToken(rawRefresh);
 
         // DB로부터 상태 검증
-        UserRefreshToken stored = getStoredRefreshToken(rawRefresh);
-        validateStoredRefreshToken(stored);
+        Instant now = clock.instant();
+        UserRefreshToken stored = getStoredRefreshToken(rawRefresh, now);
         validateRefreshTokenOwnership(stored, userIdFromRefreshToken);
 
         User user = stored.getUser();
         validateActiveUser(user);
 
         // rotation: 기존 refresh 폐기
-        stored.revokeNow();
+        stored.revoke(now);
 
         // 새 access/refresh 발급
         return issueTokens(user);
+    }
+
+    @Override
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userService.getUserById(userId);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new BusinessException(AUTH_CURRENT_PASSWORD_MISMATCH);
+        }
+
+        if (request.currentPassword().equals(request.newPassword())) {
+            throw new BusinessException(AUTH_SAME_PASSWORD);
+        }
+
+        String newPasswordHash = passwordEncoder.encode(request.newPassword());
+        user.changePassword(newPasswordHash);
+
+        Instant now = clock.instant();
+        userRefreshTokenRepository.revokeAllActiveByUserId(userId, now);
     }
 
     private static void validateRefreshTokenOwnership(UserRefreshToken stored, Long userIdFromRefreshToken) {
@@ -130,25 +160,14 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private static void validateStoredRefreshToken(UserRefreshToken stored) {
-        if (stored.isExpired()) {
-            throw new BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_EXPIRED);
-        }
-        if (stored.isRevoked()) {
-            // revoked 토큰은 보통 "더 이상 유효하지 않음"으로 보는 것이 자연스러움
-            throw new BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID);
-        }
-    }
-
-    private UserRefreshToken getStoredRefreshToken(java.lang.String rawRefresh) {
+    private UserRefreshToken getStoredRefreshToken(java.lang.String rawRefresh, Instant now) {
         java.lang.String hash = RefreshTokenHasher.sha256Hex(rawRefresh);
-        UserRefreshToken stored = userRefreshTokenRepository.findByRefreshTokenHash(hash)
-                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_NOT_FOUND));
-        return stored;
+
+        return userRefreshTokenRepository.findActiveByHashForUpdate(hash, now)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID));
     }
 
     @Override
-    @Transactional
     public void logout(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             // logout은 보통 멱등적으로 처리해도 괜찮음
@@ -157,9 +176,10 @@ public class AuthServiceImpl implements AuthService {
         }
 
         java.lang.String hash = RefreshTokenHasher.sha256Hex(refreshToken);
+        Instant now = clock.instant();
 
         userRefreshTokenRepository.findByRefreshTokenHash(hash)
-                .ifPresent(UserRefreshToken::revokeNow);
+                .ifPresent(token -> token.revoke(now));
     }
 
     // ------------------------------------------------------------------------
@@ -183,6 +203,21 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    private Address toAddress(AddressRequest request) {
+        if (request == null || request.hasMissingValue()) {
+            return null;
+        }
+
+        return Address.of(
+                request.getZipCode().trim(),
+                request.getRoadAddress().trim(),
+                request.getDetailAddress().trim(),
+                request.getSidoName().trim(),
+                request.getSigunguName().trim(),
+                request.getEupmyeondongName().trim()
+        );
+    }
+
     /**
      * 활성 사용자 여부 검증
      *
@@ -196,22 +231,23 @@ public class AuthServiceImpl implements AuthService {
 
     private IssuedTokens issueTokens(User user) {
         java.lang.String access = jwtProvider.createAccessToken(user.getId());
-        java.lang.String refresh = jwtProvider.createRefreshToken(user.getId());
+        Instant issuedAt = clock.instant();
+        Instant refreshExpiresAt = jwtProvider.calculateRefreshExpiry(issuedAt);
+        java.lang.String refresh = jwtProvider.createRefreshToken(user.getId(), issuedAt, refreshExpiresAt);
 
         java.lang.String refreshHash = RefreshTokenHasher.sha256Hex(refresh);
 
         HttpServletRequest httpReq = currentRequestOrNull();
-        LocalDateTime now = LocalDateTime.now();
 
         UserRefreshToken row = UserRefreshToken.builder()
                 .user(user)
                 .refreshTokenHash(refreshHash)
                 .userAgent(safeUserAgent(httpReq))
                 .ipAddress(safeIp(httpReq))
-                .issuedAt(now)
-                .expiresAt(jwtProvider.getRefreshExpiry())
+                .issuedAt(issuedAt)
+                .expiresAt(refreshExpiresAt)
                 .revokedAt(null)
-                .createdAt(now)
+                .createdAt(issuedAt)
                 .build();
 
         // TODO: refresh hash가 동일하여 로그인 시 에러가 발생했음.
@@ -220,10 +256,10 @@ public class AuthServiceImpl implements AuthService {
         AccessTokenDto accessTokenDto = AccessTokenDto.builder()
                 .accessToken(access)
                 .tokenType("Bearer")
-                .expiresInSeconds(1800)
+                .expiresInSeconds(jwtProvider.getAccessExpiresInSeconds())
                 .build();
 
-        return new IssuedTokens(accessTokenDto, refresh, jwtProvider.getRefreshExpiry());
+        return new IssuedTokens(accessTokenDto, refresh, refreshExpiresAt);
     }
 
     /**

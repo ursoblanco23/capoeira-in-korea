@@ -2,7 +2,7 @@ package io.github.ursoblanco23.capoeira_in_korea_backend.auth.entity;
 
 import io.github.ursoblanco23.capoeira_in_korea_backend.user.entity.User;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.*;
 
 @Entity
@@ -35,33 +35,26 @@ public class UserRefreshToken {
     private String ipAddress;
 
     @Column(name = "issued_at", nullable = false)
-    private LocalDateTime issuedAt;
+    private Instant issuedAt;
 
     @Column(name = "expires_at", nullable = false)
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
 
     @Column(name = "revoked_at")
-    private LocalDateTime revokedAt;
+    private Instant revokedAt;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
-        if (createdAt == null) createdAt = now;
-        if (issuedAt == null) issuedAt = now;
-    }
+    private Instant createdAt;
 
     public boolean isRevoked() {
         return revokedAt != null;
     }
 
-    public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiresAt);
+    public boolean isExpired(Instant now) {
+        return now.isAfter(expiresAt);
     }
 
-    public void revokeNow() {
-        this.revokedAt = LocalDateTime.now();
+    public void revoke(Instant revokedAt) {
+        this.revokedAt = revokedAt;
     }
 }

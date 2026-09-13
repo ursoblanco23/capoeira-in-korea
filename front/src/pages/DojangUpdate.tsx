@@ -1,26 +1,38 @@
 import DojangForm from "@/components/features/Dojang/DojangForm.tsx";
 import {useNavigate, useParams} from "react-router-dom";
-import {useDojangStore, useFindDojangById} from "@/stores/dojangStore.ts";
-import {useEffect, useState} from "react";
-import type {Dojang} from "@/types/dojang.ts";
-import {useMutation} from "@tanstack/react-query";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {toast} from "react-toastify";
 import {extractErrorMessage} from "@/utils/error.ts";
 import dojangService from "@/services/api/services/dojangService.ts";
+import {dojangQueryKeys, useDojangQuery} from "@/hooks/queries/useDojangsQuery.ts";
 
 const DojangUpdate = () => {
     const { dojangId } = useParams<{ dojangId: string }>();
-    const findDojangById = useFindDojangById();
-    const [dojang, setDojang] = useState<Dojang>();
+    const parsedDojangId = Number(dojangId);
+    const validDojangId =
+        Number.isSafeInteger(parsedDojangId) && parsedDojangId > 0
+            ? parsedDojangId
+            : undefined;
+    const {data: dojang, isPending, isError} =
+        useDojangQuery(validDojangId);
     const navigate = useNavigate();
-    const fetchDojangs = useDojangStore((state) => state.fetchDojangs);
+    const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: ({dojangId, submitData}: {dojangId: number, submitData: FormData}) => dojangService.updateDojang(dojangId, submitData),
-        onSuccess: ({updatedDojangId}) => {
+        mutationFn: ({dojangId, submitData}: {dojangId: number, submitData: FormData}) => dojangService.updateDojang(submitData, dojangId),
+        onSuccess: async ({updatedDojangId}) => {
             if (updatedDojangId) {
                 toast.success('도장이 성공적으로 수정되었습니다!');
-                fetchDojangs(true); // 도장 목록을 새로고침
+
+                await Promise.all([
+                    queryClient.invalidateQueries({
+                        queryKey: dojangQueryKeys.lists(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: dojangQueryKeys.detail(updatedDojangId),
+                    }),
+                ]);
+
                 navigate(-1);
             }
         },
@@ -31,21 +43,30 @@ const DojangUpdate = () => {
         }
     });
 
-    useEffect(() => {
-        if (dojangId) {
-            const dojangData = findDojangById(Number(dojangId));
-            if (dojangData) {
-                // console.log('DojangDetail with id', id, 'found:', dojangData);
-                setDojang(dojangData);
-            } else {
-                console.error(`Dojang with id ${dojangId} not found.`);
-            }
-        }
-    }, [dojangId]);
 
-    const handleSubmit = async (dojangId:number, submitData: FormData) => {
-        await mutation.mutateAsync({dojangId, submitData});
+    const handleSubmit = async (submitData: FormData) => {
+        if (validDojangId === undefined) {
+            toast.error("수정할 도장 정보가 올바르지 않습니다.");
+            return;
+        }
+
+        await mutation.mutateAsync({
+            submitData,
+            dojangId: validDojangId,
+        });
     };
+
+    if (validDojangId === undefined) {
+        return <div>잘못된 도장 ID입니다.</div>;
+    }
+
+    if (isPending) {
+        return <div>도장 정보를 불러오는 중입니다.</div>;
+    }
+
+    if (isError || !dojang) {
+        return <div>도장 정보를 불러오지 못했습니다.</div>;
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -58,8 +79,11 @@ const DojangUpdate = () => {
                     </div>
 
                     <DojangForm
-                        dojangId={Number(dojangId)}
-                        initialData={dojang}
+                        key={dojang.id}
+                        initialData={dojang ? {
+                            ...dojang,
+                            ...dojang.address,
+                        } : undefined}
                         mode="update"
                         onSubmit={handleSubmit}
                     />

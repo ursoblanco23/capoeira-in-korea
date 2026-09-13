@@ -2,16 +2,9 @@
 import { useState, useEffect } from 'react';
 import {Link} from "react-router-dom";
 import {PAGE} from "@/constants/routes.ts";
-import {useDojangStore} from "@/stores/dojangStore.ts";
 import {HeaderAuthActions} from "@/components/layout/header/HeaderAuthActions.tsx";
 
 const Header = () => {
-    //도장 스토어 초기화
-    const { fetchDojangs } = useDojangStore();
-
-    useEffect(() => {
-        fetchDojangs();
-    }, [fetchDojangs]);
 
 
     // ========== 모바일 메뉴 상태 관리 ==========

@@ -1,9 +1,10 @@
 package io.github.ursoblanco23.capoeira_in_korea_backend.dojang.service;
 
-import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangCreateDTO;
+import io.github.ursoblanco23.capoeira_in_korea_backend.auth.security.UserPrincipal;
+import io.github.ursoblanco23.capoeira_in_korea_backend.common.entity.Address;
+import io.github.ursoblanco23.capoeira_in_korea_backend.common.util.PhoneUtils;
 import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangFormDTO;
 import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangResponseDTO;
-import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.dto.DojangUpdateDTO;
 import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.entity.Dojang;
 import io.github.ursoblanco23.capoeira_in_korea_backend.dojang.repository.DojangRepository;
 import io.github.ursoblanco23.capoeira_in_korea_backend.exception.BusinessException;
@@ -12,46 +13,112 @@ import io.github.ursoblanco23.capoeira_in_korea_backend.media.entity.MediaAttach
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.entity.MediaFile;
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.enums.MediaAttachmentType;
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.enums.MediaFileType;
+import io.github.ursoblanco23.capoeira_in_korea_backend.media.facade.MediaManagementFacade;
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.service.MediaAttachmentService;
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.service.MediaFileService;
 import io.github.ursoblanco23.capoeira_in_korea_backend.media.service.StorageService;
+import io.github.ursoblanco23.capoeira_in_korea_backend.user.constants.RoleName;
 import io.github.ursoblanco23.capoeira_in_korea_backend.user.entity.User;
+import io.github.ursoblanco23.capoeira_in_korea_backend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class DojangServiceImpl implements DojangService {
 
+    private static final Set<String> DOJANG_CREATE_ROLES = Set.of(
+            RoleName.ROLE_DOJANG_ADMIN.name(),
+            RoleName.ROLE_SITE_ADMIN.name()
+    );
+
     private final MediaFileService mediaFileService;
     private final MediaAttachmentService mediaAttachmentService;
     private final StorageService storageService;
+    private final MediaManagementFacade mediaManagementFacade;
 
     private final DojangRepository dojangRepository;
+    private final UserService userService;
 
     @Override
     public List<DojangResponseDTO> getDojangs(String searchParam) {
         List<Dojang> dojangs;
 
-        log.info("service > searchDojangs > searchParam : {}", searchParam);
-
-        if (searchParam == null || searchParam.isEmpty()) {
-            dojangs = dojangRepository.findAll();
+        if (searchParam == null || searchParam.isBlank()) {
+            dojangs = dojangRepository.findAllByDeletedAtIsNullOrderByCreatedAtDescIdDesc();
         } else {
-            dojangs = dojangRepository.findByNameContainingIgnoreCaseOrRoadAddressContainingIgnoreCaseOrDetailAddressContainingIgnoreCase(
-                    searchParam.trim(), searchParam.trim(), searchParam.trim()
+            dojangs = dojangRepository.searchByNameOrAddressAndDeletedAtIsNull(
+                    searchParam.strip()
             );
         }
 
+        Map<Long, String> thumbnailUrlsByDojangId =
+                getActiveThumbnailUrlsByDojangId(dojangs);
+
         return dojangs.stream()
-                .map(DojangResponseDTO::from)
+                .map(dojang -> DojangResponseDTO.from(
+                        dojang,
+                        thumbnailUrlsByDojangId.get(dojang.getId())
+                ))
                 .toList();
+    }
+
+    @Override
+    public DojangResponseDTO getDojangById(long id) {
+        if (id < 1) {
+            throw new BusinessException(ErrorCode.DOJANG_NOT_FOUND, "도장ID: {"+ id +"} 정보를 찾을 수 없습니다.");
+        }
+
+        Dojang dojang = dojangRepository
+                .findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(
+                    ErrorCode.DOJANG_NOT_FOUND,
+                    "도장ID: " + id + " 정보를 찾을 수 없습니다."
+        ));
+
+        String thumbnailUrl = mediaAttachmentService.findActiveAttachment(
+                        MediaAttachmentType.DOJANG,
+                        id,
+                        MediaFileType.THUMBNAIL
+                )
+                .map(MediaAttachment::getMedia)
+                .map(MediaFile::getFilePath)
+                .orElse(null);
+
+        return DojangResponseDTO.from(dojang, thumbnailUrl);
+    }
+
+    private Map<Long, String> getActiveThumbnailUrlsByDojangId(List<Dojang> dojangs) {
+        if (dojangs.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> dojangIds = dojangs.stream()
+                .map(Dojang::getId)
+                .toList();
+
+        return mediaAttachmentService.findAllActiveAttachments(
+                        MediaAttachmentType.DOJANG,
+                        dojangIds,
+                        MediaFileType.THUMBNAIL
+                )
+                .stream()
+                .collect(Collectors.toMap(
+                        MediaAttachment::getAttachableId,
+                        attachment -> attachment.getMedia().getFilePath(),
+                        (first, ignored) -> first
+                ));
     }
 
     /**
@@ -67,54 +134,66 @@ public class DojangServiceImpl implements DojangService {
     *  */
 
     @Override
-    public Long createDojang(DojangCreateDTO request, MultipartFile thumbnailImage) {
-        // 1. 비즈니스 유효성 검증
-        validateDuplicateDojang(request);
+    public Long createDojang(DojangFormDTO request, MultipartFile thumbnailImage, UserPrincipal requester) {
+        // 권한 검증
+        validateCreatePermission(requester);
+
+        // 비즈니스 유효성 검증
         validateCreateDojangForm(request);
 
-        // 2. 도장 엔터티 생성 및 저장
-        Dojang dojang = createDojangEntity(request);
+        // 도장 엔터티 생성 및 저장
+        Dojang dojang = createDojangEntity(request, requester.getUserId());
         log.info("createDojang >>> dojang={}", dojang);
         dojangRepository.save(dojang);
 
-        // 3. 썸네일 이미지 처리 (있는 경우)
-        if (thumbnailImage != null && !thumbnailImage.isEmpty()) {
-//            MediaFile savedThumbnailFile = processAndAttachThumbnail(dojang, thumbnailImage, request.getAltText(), request.getRegistrantId());
-//
-//            //생성된 도장에 media_files 테이블에 생성된 thumbnail_id update 해주기
-//            dojang.setThumbnailFile(savedThumbnailFile);
-//            return dojangRepository.save(dojang).getId();
+        // 썸네일 이미지 처리 (있는 경우)
+        if ( thumbnailImage != null && !thumbnailImage.isEmpty() ) {
+            replaceDojangThumbnail(thumbnailImage, requester, dojang, request.getAltText());
         }
 
         return dojang.getId();
     }
 
+    private void replaceDojangThumbnail(MultipartFile thumbnailImage, UserPrincipal requester, Dojang dojang, String altText) {
+        User uploader = userService.getUserById(requester.getUserId());
+        mediaManagementFacade.replaceSingleAttachment(
+                uploader
+                , thumbnailImage
+                ,MediaFileType.THUMBNAIL
+                ,MediaAttachmentType.DOJANG
+                , dojang.getId()
+                ,altText
+        );
+    }
+
     @Override
-    public Long updateDojang(Long dojangId, DojangUpdateDTO request, MultipartFile thumbnailImage) {
-//        validateUpdateDojangForm(request);
-//
-//        Dojang dojang = dojangRepository.findById(dojangId)
-//                .orElseThrow(() -> new BusinessException(ErrorCode.DOJANG_NOT_FOUND, "Dojang not found with id: " + dojangId));
-//
-//        applyDojangUpdates(dojang, request);
-//
-//        if (thumbnailImage != null && !thumbnailImage.isEmpty()) {
-//            MediaFile thumbnailFile = dojang.getThumbnailFile();
-//
-//            if (thumbnailFile != null) {
-//                removeFileFromDBAndStorage(thumbnailFile, MediaFileType.THUMBNAIL, dojang, MediaAttachmentType.DOJANG);
-//            }
-//
-//            MediaFile savedThumbnailFile =
-//                    processAndAttachThumbnail(dojang, thumbnailImage, request.getAltText(), request.getRegistrantId());
-//
-//            dojang.setThumbnailFile(savedThumbnailFile);
-//        }
-//
-//        log.info("update Dojang >>> dojang={}", dojang);
-//
-//        return dojang.getId();
-        return null;
+    public Long updateDojang(Long dojangId, DojangFormDTO request, MultipartFile thumbnailImage, UserPrincipal requester) {
+        Dojang dojang = dojangRepository.findByIdAndDeletedAtIsNull(dojangId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.DOJANG_NOT_FOUND,
+                        "Dojang not found with id: " + dojangId
+                ));
+
+        // validation
+        validateUpdatePermission(requester, dojang.getRegistrantId());
+        validateUpdateDojangForm(dojangId, request);
+
+        dojang.updateBasicInfo(
+                request.getName().strip(),
+                createAddress(request),
+                request.getLatitude(),
+                request.getLongitude(),
+                normalizeDojangPhone(request.getPhone()),
+                normalizeNullable(request.getPriceInfo()),
+                normalizeNullable(request.getInstructorName()),
+                normalizeNullable(request.getDescription())
+        );
+
+        if (thumbnailImage != null && !thumbnailImage.isEmpty()) {
+            replaceDojangThumbnail(thumbnailImage, requester, dojang, request.getAltText());
+        }
+
+        return dojang.getId();
     }
 
     @Override
@@ -135,24 +214,69 @@ public class DojangServiceImpl implements DojangService {
         dojangRepository.delete(dojang);
     }
 
-    //TODO: 도장 생성 form validation 메서드 완성하기.
-    private void validateCommonDojangForm(DojangFormDTO request) {
-        // 공통 검증
+    private void validateCreateDojangForm(DojangFormDTO request) {
+        validateDojangAddress(request);
+        validateDuplicateDojang(request, null);
     }
 
-    private void validateCreateDojangForm(DojangCreateDTO  request) {
-        validateCommonDojangForm(request);
-        // create 전용 검증
+    /**
+     * 기본 정보 입력 여부만 판단 -> 실제 주소 및 도장 운영 여부는 사이트 관리자가 확인
+     * @param request 도장 등록, 수정 FORM
+     */
+    private void validateDojangAddress(DojangFormDTO request) {
+        if (request.getAddress() == null || request.getAddress().hasMissingValue()) {
+            throw new BusinessException(ErrorCode.DOJANG_ADDRESS_INCOMPLETE);
+        }
     }
 
-    private void validateUpdateDojangForm(DojangUpdateDTO request) {
-        // update 전용 검증
-        // 필요하면 일부 공통 로직 재사용
+    private void validateCreatePermission(UserPrincipal requester) {
+        boolean hasPermission = requester.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(DOJANG_CREATE_ROLES::contains);
+
+        if (!hasPermission) {
+            throw new BusinessException(ErrorCode.AUTH_ACCESS_DENIED);
+        }
     }
 
-    private void validateDuplicateDojang(DojangCreateDTO request) {
-        boolean isExist = dojangRepository.existsByNameAndRoadAddress(request.getName(), request.getRoadAddress());
-        if (isExist) {
+    private void validateUpdatePermission(UserPrincipal requester, long dojangRegistrantId) {
+        validateCreatePermission(requester);
+
+        boolean isSiteAdmin = requester.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(RoleName.ROLE_SITE_ADMIN.name()::equals);
+
+        if (isSiteAdmin) return;
+
+        if (!requester.getUserId().equals(dojangRegistrantId)) {
+            throw new BusinessException(ErrorCode.AUTH_ACCESS_DENIED);
+        }
+    }
+
+    private void validateUpdateDojangForm(Long dojangId, DojangFormDTO request) {
+        validateDojangAddress(request);
+        validateDuplicateDojang(request, dojangId);
+    }
+
+    private void validateDuplicateDojang(DojangFormDTO request, Long excludedDojangId) {
+        String name = request.getName().strip();
+        String roadAddress = normalizeAddress(request.getAddress().getRoadAddress());
+        String detailAddress = normalizeAddress(request.getAddress().getDetailAddress());
+
+        boolean duplicate = excludedDojangId == null
+                ? dojangRepository.existsByNameAndAddress_RoadAddressAndAddress_DetailAddressAndDeletedAtIsNull(
+                        name,
+                        roadAddress,
+                        detailAddress
+                )
+                : dojangRepository.existsByNameAndAddress_RoadAddressAndAddress_DetailAddressAndIdNotAndDeletedAtIsNull(
+                        name,
+                        roadAddress,
+                        detailAddress,
+                        excludedDojangId
+                );
+
+        if (duplicate) {
             throw new BusinessException(ErrorCode.DOJANG_DUPLICATE);
         }
     }
@@ -160,23 +284,64 @@ public class DojangServiceImpl implements DojangService {
     /**
      * 도장 엔터티 생성 및 저장
      */
-    public Dojang createDojangEntity(DojangCreateDTO request) {  // DojangCreateDTO로 가정
+    public Dojang createDojangEntity(DojangFormDTO request, Long registrantId) {
         return Dojang.builder()
-                .name(request.getName())
-                .zipCode(request.getZipCode())
-                .roadAddress(request.getRoadAddress())
-                .detailAddress(request.getDetailAddress())
-                .sidoName(request.getSidoName())
-                .sigunguName(request.getSigunguName())
-                .eupmyeondongName(request.getEupmyeondongName())
+                .name(request.getName().strip())
+                .address(createAddress(request))
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
-                .phone(request.getPhone())
-                .priceRange(request.getPriceRange())
-                .instructorName(request.getInstructorName())
-                .description(request.getDescription())
-                .registrantId(request.getRegistrantId())
+                .phone(normalizeDojangPhone(request.getPhone()))
+                .priceInfo(normalizeNullable(request.getPriceInfo()))
+                .instructorName(normalizeNullable(request.getInstructorName()))
+                .description(normalizeNullable(request.getDescription()))
+                .registrantId(registrantId)
                 .build();
+    }
+
+    private Address createAddress(DojangFormDTO request) {
+        return Address.of(
+                normalizeAddress(request.getAddress().getZipCode()),
+                normalizeAddress(request.getAddress().getRoadAddress()),
+                normalizeAddress(request.getAddress().getDetailAddress()),
+                normalizeAddress(request.getAddress().getSidoName()),
+                normalizeAddress(request.getAddress().getSigunguName()),
+                normalizeAddress(request.getAddress().getEupmyeondongName())
+        );
+    }
+
+    private String normalizeDojangPhone(String phone) {
+        try {
+            return PhoneUtils.normalizeKoreanPhoneToE164(phone);
+        } catch (IllegalArgumentException exception) {
+            throw new BusinessException(
+                    ErrorCode.COMMON_VALIDATION_ERROR,
+                    "올바른 한국 도장 전화번호를 입력해 주세요",
+                    exception
+            );
+        }
+    }
+
+    /**
+     * 의미 없는 빈 값을 Nullable column에 null이 들어가도록 정규화
+     * @param value
+     * @return
+     */
+    private String normalizeNullable(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.strip();
+    }
+
+    private String normalizeAddress(String value) {
+        String normalized = normalizeNullable(value);
+
+        if (normalized == null) {
+            return null;
+        }
+
+        return normalized.replaceAll("(?U)\\s+", " ");
     }
 
     //TODO: 로그인 후 고쳐야함, entity에 setter삭제한 사이드 이펙트.
@@ -247,28 +412,10 @@ public class DojangServiceImpl implements DojangService {
         mediaAttachmentService.deleteAttachment(attachment);
 
         // media_files 테이블 정리
-        mediaFileService.deleteFile(thumbnailFile);
+        mediaFileService.deleteFileRecord(thumbnailFile);
 
         // 실제 디렉토리 파일 삭제
         storageService.deleteFile(thumbnailFile.getFilePath());
-    }
-
-    /**
-     * 썸네일 이미지 처리 및 연결
-     */
-    public MediaFile processAndAttachThumbnail(Dojang dojang, MultipartFile thumbnailImage, String altText, User user) {
-        // 파일 업로드 및 MediaFile 생성
-        MediaFile media = mediaFileService.uploadImgFile(thumbnailImage, MediaFileType.THUMBNAIL, altText, user);
-
-        // MediaAttachment 생성 및 연결
-        mediaAttachmentService.createAttachment(
-                media,
-                MediaFileType.THUMBNAIL,
-                dojang.getId(),
-                MediaAttachmentType.DOJANG
-        );
-
-        return media;
     }
 
 //    private void validateBusinessRules(DojangCreateRequest request) {

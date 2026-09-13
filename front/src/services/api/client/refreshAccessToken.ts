@@ -4,7 +4,7 @@ import { refreshClient } from "./refreshClient";
 import { useAuthStore } from "@/stores/authStore";
 import { ApiError } from "@/utils/apiError";
 import { normalizeApiError } from "../utils/normalizeApiError";
-import {ENDPOINTS} from "@/services/api/endpoints";
+import {ENDPOINTS} from "@/services/api/endpoints/base";
 
 let refreshPromise: Promise<void> | null = null;
 const refreshErrorDefaultMessage = "세션이 만료되었습니다. 다시 로그인해주세요.";

@@ -1,0 +1,11 @@
+# Use LF for automatically detected text files throughout the project.
+* text=auto eol=lf
+
+# Explicitly treat the Linux/macOS Gradle launcher as text and use LF.
+/backend/gradlew text eol=lf
+
+# Preserve CRLF for Windows batch scripts.
+*.bat text eol=crlf
+
+# Treat JAR archives as binary; disable line-ending conversion and text diff/merge.
+*.jar binary
